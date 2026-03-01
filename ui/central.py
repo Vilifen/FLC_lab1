@@ -1,7 +1,51 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QPlainTextEdit, QPushButton, QSizePolicy, QMessageBox
-from PyQt6.QtGui import QPainter, QColor
-from PyQt6.QtCore import QRect, QSize, Qt
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QPlainTextEdit,
+    QPushButton, QSizePolicy, QMessageBox, QScrollArea
+)
+from PyQt6.QtGui import QPainter, QColor, QSyntaxHighlighter, QTextCharFormat, QFont
+from PyQt6.QtCore import QRect, QSize, Qt, QRegularExpression
 from functools import partial
+
+
+class PythonHighlighter(QSyntaxHighlighter):
+    def __init__(self, document):
+        super().__init__(document)
+        self.rules = []
+
+        def fmt(color, bold=False):
+            f = QTextCharFormat()
+            f.setForeground(QColor(color))
+            if bold:
+                f.setFontWeight(600)
+            return f
+
+        keywords = [
+            "def", "class", "return", "if", "elif", "else", "while", "for",
+            "try", "except", "finally", "with", "as", "import", "from",
+            "pass", "break", "continue", "in", "is", "not", "and", "or",
+            "lambda", "yield", "global", "nonlocal", "assert", "raise"
+        ]
+
+        keyword_format = fmt("#0077cc", True)
+        for kw in keywords:
+            self.rules.append((QRegularExpression(rf"\b{kw}\b"), keyword_format))
+
+        string_format = fmt("#dd1144")
+        self.rules.append((QRegularExpression(r'"[^"\\]*(\\.[^"\\]*)*"'), string_format))
+        self.rules.append((QRegularExpression(r"'[^'\\]*(\\.[^'\\]*)*'"), string_format))
+
+        comment_format = fmt("#009933")
+        self.rules.append((QRegularExpression(r"#.*"), comment_format))
+
+        number_format = fmt("#aa00aa")
+        self.rules.append((QRegularExpression(r"\b[0-9]+\b"), number_format))
+
+    def highlightBlock(self, text):
+        for pattern, form in self.rules:
+            it = pattern.globalMatch(text)
+            while it.hasNext():
+                m = it.next()
+                self.setFormat(m.capturedStart(), m.capturedLength(), form)
 
 
 class LineNumberArea(QWidget):
@@ -28,6 +72,8 @@ class CodeEditor(QPlainTextEdit):
         self.cursorPositionChanged.connect(self.update)
         self.update_line_number_area_width(0)
 
+        self.highlighter = PythonHighlighter(self.document())
+
     def dragEnterEvent(self, event):
         event.ignore()
 
@@ -41,7 +87,9 @@ class CodeEditor(QPlainTextEdit):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         cr = self.contentsRect()
-        self.line_number_area.setGeometry(QRect(cr.left(), cr.top(), self.line_number_area_width(), cr.height()))
+        self.line_number_area.setGeometry(
+            QRect(cr.left(), cr.top(), self.line_number_area_width(), cr.height())
+        )
 
     def update_line_number_area_width(self, _):
         self.setViewportMargins(self.line_number_area_width(), 0, 0, 0)
@@ -50,28 +98,39 @@ class CodeEditor(QPlainTextEdit):
         if dy:
             self.line_number_area.scroll(0, dy)
         else:
-            self.line_number_area.update(0, rect.y(), self.line_number_area.width(), rect.height())
+            self.line_number_area.update(
+                0, rect.y(), self.line_number_area.width(), rect.height()
+            )
 
     def line_number_area_paint_event(self, event):
         painter = QPainter(self.line_number_area)
         painter.fillRect(event.rect(), QColor(245, 245, 245))
+
         block = self.firstVisibleBlock()
         block_number = block.blockNumber()
-        top = int(self.blockBoundingGeometry(block).translated(self.contentOffset()).top())
-        bottom = top + int(self.blockBoundingRect(block).height())
-        while block.isValid() and top <= event.rect().bottom():
-            if block.isVisible() and bottom >= event.rect().top():
+        offset = self.contentOffset()
+        fm = self.fontMetrics()
+
+        while block.isValid():
+            rect = self.blockBoundingGeometry(block).translated(offset)
+            top = rect.top()
+            bottom = rect.bottom()
+
+            if bottom >= event.rect().top() and top <= event.rect().bottom():
                 painter.setPen(QColor(0, 0, 0))
                 painter.drawText(
-                    0, top,
+                    0,
+                    int(top),
                     self.line_number_area.width() - 4,
-                    self.fontMetrics().height(),
+                    fm.height(),
                     Qt.AlignmentFlag.AlignRight,
                     str(block_number + 1)
                 )
+
+            if top > event.rect().bottom():
+                break
+
             block = block.next()
-            top = bottom
-            bottom = top + int(self.blockBoundingRect(block).height())
             block_number += 1
 
 
@@ -82,6 +141,8 @@ class CentralWidget(QWidget):
         self.tabs = []
         self.current_index = -1
         self.untitled_counter = 1
+        self.font_size = 14
+        self.output_mode = "build"
 
         self.setAcceptDrops(True)
 
@@ -89,9 +150,16 @@ class CentralWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
+        self.tab_scroll = QScrollArea()
+        self.tab_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.tab_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.tab_scroll.setWidgetResizable(True)
+        self.tab_scroll.setFixedHeight(48)
+
         self.tab_bar = QWidget()
+        self.tab_bar.setObjectName("tab-bar")
         self.tab_bar.setStyleSheet("""
-            QWidget {
+            #tab-bar {
                 background: #f0f0f0;
                 border-bottom: 1px solid #c0c0c0;
             }
@@ -101,8 +169,7 @@ class CentralWidget(QWidget):
         self.tab_layout.setContentsMargins(4, 2, 4, 0)
         self.tab_layout.setSpacing(2)
 
-        self.spacer = QWidget()
-        self.spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.tab_scroll.setWidget(self.tab_bar)
 
         self.plus_button = QPushButton("+")
         self.plus_button.setFixedWidth(28)
@@ -120,70 +187,125 @@ class CentralWidget(QWidget):
         """)
         self.plus_button.clicked.connect(self.add_tab)
 
-        self.tab_layout.addWidget(self.spacer)
+        self.spacer = QWidget()
+        self.spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+
         self.tab_layout.addWidget(self.plus_button)
+        self.tab_layout.addWidget(self.spacer)
 
         self.editor = CodeEditor()
-        self.editor.setStyleSheet("""
-            QPlainTextEdit {
-                background: white;
-                color: black;
-                font-size: 14px;
-                border: none;
-            }
-        """)
+
+        self.output_tabs = QWidget()
+        self.output_tabs_layout = QHBoxLayout(self.output_tabs)
+        self.output_tabs_layout.setContentsMargins(4, 0, 4, 0)
+        self.output_tabs_layout.setSpacing(2)
+
+        self.build_btn = QPushButton("Сборка")
+        self.build_btn.setCheckable(True)
+        self.build_btn.setFixedHeight(32)
+        self.build_btn.setStyleSheet(self._tab_style())
+        self.build_btn.clicked.connect(lambda: self.switch_output("build"))
+
+        self.err_btn = QPushButton("Ошибки")
+        self.err_btn.setCheckable(True)
+        self.err_btn.setFixedHeight(32)
+        self.err_btn.setStyleSheet(self._tab_style())
+        self.err_btn.clicked.connect(lambda: self.switch_output("errors"))
+
+        self.output_tabs_layout.addWidget(self.build_btn)
+        self.output_tabs_layout.addWidget(self.err_btn)
 
         self.output = QTextEdit()
         self.output.setReadOnly(True)
-        self.output.setStyleSheet("""
-            QTextEdit {
-                background: white;
-                color: black;
-                font-size: 14px;
-                border-top: 1px solid #c0c0c0;
-            }
-        """)
 
-        self.editor.textChanged.connect(self._sync_editor)
+        self.apply_font_size()
 
-        layout.addWidget(self.tab_bar)
+        layout.addWidget(self.tab_scroll)
         layout.addWidget(self.editor, 3)
+        layout.addWidget(self.output_tabs)
         layout.addWidget(self.output, 1)
 
+        self.editor.textChanged.connect(self._sync_editor)
+        self.editor.textChanged.connect(self._update_status)
+
         self.add_tab()
+        self.show_build_log("")
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
 
     def dropEvent(self, event):
+        if not event.mimeData().hasUrls():
+            event.ignore()
+            return
+
         urls = event.mimeData().urls()
         if not urls:
             return
+
         path = urls[0].toLocalFile()
         if not path:
             return
-        self.open_file_from_path(path)
 
-    def open_file_from_path(self, path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                text = f.read()
-        except Exception:
-            return
+        self._open_file_from_path(path)
 
-        self.add_tab()
+    def _open_file_from_path(self, path):
+        title = path.split("/")[-1]
+        self.add_tab(title)
 
-        filename = path.split("/")[-1]
-        tab = self.tabs[self.current_index]
-        tab["title"] = filename
-        tab["button"].setText(f"{filename}   ✕")
-        tab["text"] = text
-        tab["modified"] = False
+        editor = self.current_editor()
+        with open(path, "r", encoding="utf-8") as f:
+            editor.setPlainText(f.read())
 
-        self.editor.blockSignals(True)
-        self.editor.setPlainText(text)
-        self.editor.blockSignals(False)
+        self.show_build_log(f"Файл открыт: {path}")
+        self.show_results_table([])
+
+    def _tab_style(self):
+        return """
+            QPushButton {
+                background: #e6e6e6;
+                border: 1px solid #a0a0a0;
+                padding: 4px 12px;
+                min-width: 110px;
+                color: black;
+            }
+            QPushButton:checked {
+                background: #ffffff;
+                border-bottom: 1px solid #ffffff;
+                color: black;
+            }
+        """
+
+    def switch_output(self, mode):
+        self.output_mode = mode
+        self.build_btn.setChecked(mode == "build")
+        self.err_btn.setChecked(mode == "errors")
+
+        data = self.tabs[self.current_index]
+
+        if mode == "build":
+            self.output.setPlainText(data["build_log"])
+        else:
+            self.output.setHtml(data["errors_html"])
+
+    def apply_font_size(self):
+        font = QFont()
+        font.setPointSize(self.font_size)
+        self.editor.setFont(font)
+        self.output.setFont(font)
+
+    def set_font_size(self, size):
+        self.font_size = size
+        self.apply_font_size()
 
     def _sync_editor(self):
         if 0 <= self.current_index < len(self.tabs):
@@ -192,48 +314,46 @@ class CentralWidget(QWidget):
 
     def _sync_output(self):
         if 0 <= self.current_index < len(self.tabs):
-            self.tabs[self.current_index]["output"] = self.output.toPlainText()
-            self.tabs[self.current_index]["modified"] = True
+            if self.output_mode == "build":
+                self.tabs[self.current_index]["build_log"] = self.output.toPlainText()
+            else:
+                self.tabs[self.current_index]["errors_html"] = self.output.toHtml()
 
     def _update_tab_buttons_state(self):
         for i, tab in enumerate(self.tabs):
             tab["button"].setChecked(i == self.current_index)
 
-    def add_tab(self):
+    def _update_status(self):
+        w = self.window()
+        if hasattr(w, "update_status_bar"):
+            w.update_status_bar()
+
+    def add_tab(self, title=None):
         if 0 <= self.current_index < len(self.tabs):
             self._sync_editor()
             self._sync_output()
 
-        title = f"Без имени {self.untitled_counter}"
-        self.untitled_counter += 1
+        if not title:
+            title = f"Без имени {self.untitled_counter}"
+            self.untitled_counter += 1
 
         btn = QPushButton(f"{title}   ✕")
         btn.setCheckable(True)
         btn.setFlat(True)
-        btn.setStyleSheet("""
-            QPushButton {
-                background: #e6e6e6;
-                border: 1px solid #a0a0a0;
-                padding: 4px 12px;
-                color: black;
-            }
-            QPushButton:checked {
-                background: #ffffff;
-                border-bottom: 1px solid #ffffff;
-                color: black;
-            }
-        """)
+        btn.setFixedHeight(32)
+        btn.setStyleSheet(self._tab_style())
 
         index = len(self.tabs)
         btn.clicked.connect(partial(self.switch_tab, index))
         btn.mousePressEvent = partial(self._tab_mouse_press, index=index, button=btn)
 
-        self.tab_layout.insertWidget(self.tab_layout.count() - 2, btn)
+        self.tab_layout.insertWidget(self.tab_layout.count() - 1, btn)
 
         self.tabs.append({
             "title": title,
             "text": "",
-            "output": "",
+            "build_log": "",
+            "errors_html": "",
             "button": btn,
             "modified": False,
         })
@@ -241,6 +361,8 @@ class CentralWidget(QWidget):
         self.current_index = index
         self._load_tab()
         self._update_tab_buttons_state()
+        self.switch_output("build")
+        self._update_status()
 
     def _tab_mouse_press(self, event, index, button):
         if event.pos().x() > button.width() - 18:
@@ -272,13 +394,14 @@ class CentralWidget(QWidget):
             w.actions.save.trigger()
 
         self.close_tab(index)
+        self._update_status()
 
     def close_tab(self, index):
         if len(self.tabs) == 1:
             return
 
         self.tabs.pop(index)
-        self.tab_layout.itemAt(index).widget().deleteLater()
+        self.tab_layout.itemAt(index + 1).widget().deleteLater()
 
         for i, tab in enumerate(self.tabs):
             tab["button"].clicked.disconnect()
@@ -288,6 +411,8 @@ class CentralWidget(QWidget):
         self.current_index = max(0, index - 1)
         self._load_tab()
         self._update_tab_buttons_state()
+        self.switch_output("build")
+        self._update_status()
 
     def switch_tab(self, index):
         if index == self.current_index:
@@ -302,25 +427,74 @@ class CentralWidget(QWidget):
         self.current_index = index
         self._load_tab()
         self._update_tab_buttons_state()
+        self.switch_output("build")
+        self._update_status()
 
     def _load_tab(self):
         data = self.tabs[self.current_index]
         self.editor.blockSignals(True)
         self.editor.setPlainText(data["text"])
         self.editor.blockSignals(False)
-        self.output.setPlainText(data["output"])
+
+        if self.output_mode == "build":
+            self.output.setPlainText(data["build_log"])
+        else:
+            self.output.setHtml(data["errors_html"])
 
     def current_editor(self):
         return self.editor
 
-    def current_output(self):
-        return self.output
+    def show_build_log(self, text):
+        self.tabs[self.current_index]["build_log"] = text
+        if self.output_mode == "build":
+            self.output.setPlainText(text)
 
-    def set_current_output_text(self, text):
-        self.output.setPlainText(text)
-        self._sync_output()
+    def show_results_table(self, results):
+        if not results:
+            html = """
+            <style>
+                body { margin: 0; padding: 0; }
+                table { width: 100%; border-collapse: collapse; }
+            </style>
+            <table border="1" cellspacing="0" cellpadding="4" style="width:100%; font-size:14px;">
+                <tr><td style="text-align:center; color:#666;">Нет ошибок</td></tr>
+            </table>
+            """
+            self.tabs[self.current_index]["errors_html"] = html
+            if self.output_mode == "errors":
+                self.output.setHtml(html)
+            return
+
+        html = """
+        <style>
+            body { margin: 0; padding: 0; }
+            table { width: 100%; border-collapse: collapse; }
+        </style>
+        <table border="1" cellspacing="0" cellpadding="4" style="width:100%; font-size:14px;">
+            <tr style="background:#e6e6e6; font-weight:bold;">
+                <td>№</td><td>File</td><td>Line</td><td>Column</td><td>Message</td>
+            </tr>
+        """
+
+        for i, r in enumerate(results, start=1):
+            html += f"""
+            <tr>
+                <td>{i}</td>
+                <td>{r['file']}</td>
+                <td>{r['line']}</td>
+                <td>{r['column']}</td>
+                <td>{r['message']}</td>
+            </tr>
+            """
+
+        html += "</table>"
+
+        self.tabs[self.current_index]["errors_html"] = html
+        if self.output_mode == "errors":
+            self.output.setHtml(html)
 
     def rename_current_tab(self, title):
         if 0 <= self.current_index < len(self.tabs):
             self.tabs[self.current_index]["title"] = title
             self.tabs[self.current_index]["button"].setText(f"{title}   ✕")
+            self._update_status()
