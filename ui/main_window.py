@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QMainWindow, QMessageBox
+from PyQt6.QtWidgets import QMainWindow, QMessageBox, QStatusBar
 from ui.central import CentralWidget
 from ui.actions import ActionManager
 from ui.menus import MenuBuilder
@@ -51,6 +51,9 @@ class MainWindow(QMainWindow):
             "yes": "Да",
             "no": "Нет",
             "cancel": "Отмена",
+            "status_lang": "Язык",
+            "status_size": "Размер",
+            "status_lines": "Строк",
         }
 
         self.labels_en = {
@@ -95,6 +98,9 @@ class MainWindow(QMainWindow):
             "yes": "Yes",
             "no": "No",
             "cancel": "Cancel",
+            "status_lang": "Language",
+            "status_size": "Size",
+            "status_lines": "Lines",
         }
 
         self.labels = self.labels_ru
@@ -102,6 +108,16 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Текстовый редактор")
         self.resize(1000, 700)
         self.menuBar().setNativeMenuBar(False)
+
+        self.status = QStatusBar()
+        self.status.setStyleSheet("""
+            QStatusBar {
+                background: white;
+                color: black;
+                border-top: 1px solid #c0c0c0;
+            }
+        """)
+        self.setStatusBar(self.status)
 
         self.central = CentralWidget()
         self.setCentralWidget(self.central)
@@ -111,6 +127,21 @@ class MainWindow(QMainWindow):
         ToolbarBuilder(self, self.actions)
 
         self.set_language("ru")
+        self.update_status_bar()
+
+        self.central.editor.textChanged.connect(self.update_status_bar)
+
+    def update_status_bar(self):
+        text = self.central.editor.toPlainText()
+        size = len(text.encode("utf-8"))
+        lines = text.count("\n") + 1
+        lang = "RU" if self.labels is self.labels_ru else "EN"
+
+        self.status.showMessage(
+            f"{self.labels['status_lang']}: {lang}    "
+            f"{self.labels['status_size']}: {size} B    "
+            f"{self.labels['status_lines']}: {lines}"
+        )
 
     def set_language(self, lang: str):
         if lang == "ru":
@@ -126,7 +157,14 @@ class MainWindow(QMainWindow):
             title = tab["title"]
             tab["button"].setText(f"{title}   ✕")
 
+        self.update_status_bar()
         self.repaint()
+
+    def get_editor(self):
+        return self.central.editor
+
+    def get_output(self):
+        return self.central.output
 
     def closeEvent(self, event):
         for tab in self.central.tabs:

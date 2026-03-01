@@ -145,12 +145,18 @@ class CentralWidget(QWidget):
         """)
 
         self.editor.textChanged.connect(self._sync_editor)
+        self.editor.textChanged.connect(self._update_status)
 
         layout.addWidget(self.tab_bar)
         layout.addWidget(self.editor, 3)
         layout.addWidget(self.output, 1)
 
         self.add_tab()
+
+    def _update_status(self):
+        w = self.window()
+        if hasattr(w, "update_status_bar"):
+            w.update_status_bar()
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -164,6 +170,7 @@ class CentralWidget(QWidget):
         if not path:
             return
         self.open_file_from_path(path)
+        self._update_status()
 
     def open_file_from_path(self, path):
         try:
@@ -241,6 +248,7 @@ class CentralWidget(QWidget):
         self.current_index = index
         self._load_tab()
         self._update_tab_buttons_state()
+        self._update_status()
 
     def _tab_mouse_press(self, event, index, button):
         if event.pos().x() > button.width() - 18:
@@ -272,6 +280,7 @@ class CentralWidget(QWidget):
             w.actions.save.trigger()
 
         self.close_tab(index)
+        self._update_status()
 
     def close_tab(self, index):
         if len(self.tabs) == 1:
@@ -288,6 +297,7 @@ class CentralWidget(QWidget):
         self.current_index = max(0, index - 1)
         self._load_tab()
         self._update_tab_buttons_state()
+        self._update_status()
 
     def switch_tab(self, index):
         if index == self.current_index:
@@ -302,6 +312,7 @@ class CentralWidget(QWidget):
         self.current_index = index
         self._load_tab()
         self._update_tab_buttons_state()
+        self._update_status()
 
     def _load_tab(self):
         data = self.tabs[self.current_index]
@@ -319,8 +330,10 @@ class CentralWidget(QWidget):
     def set_current_output_text(self, text):
         self.output.setPlainText(text)
         self._sync_output()
+        self._update_status()
 
     def rename_current_tab(self, title):
         if 0 <= self.current_index < len(self.tabs):
             self.tabs[self.current_index]["title"] = title
             self.tabs[self.current_index]["button"].setText(f"{title}   ✕")
+            self._update_status()
