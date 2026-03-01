@@ -2,9 +2,50 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QPlainTextEdit,
     QPushButton, QSizePolicy, QMessageBox, QScrollArea
 )
-from PyQt6.QtGui import QPainter, QColor
-from PyQt6.QtCore import QRect, QSize, Qt
+from PyQt6.QtGui import QPainter, QColor, QSyntaxHighlighter, QTextCharFormat, QFont
+from PyQt6.QtCore import QRect, QSize, Qt, QRegularExpression
 from functools import partial
+
+
+class PythonHighlighter(QSyntaxHighlighter):
+    def __init__(self, document):
+        super().__init__(document)
+        self.rules = []
+
+        def fmt(color, bold=False):
+            f = QTextCharFormat()
+            f.setForeground(QColor(color))
+            if bold:
+                f.setFontWeight(600)
+            return f
+
+        keywords = [
+            "def", "class", "return", "if", "elif", "else", "while", "for",
+            "try", "except", "finally", "with", "as", "import", "from",
+            "pass", "break", "continue", "in", "is", "not", "and", "or",
+            "lambda", "yield", "global", "nonlocal", "assert", "raise", "print"
+        ]
+
+        keyword_format = fmt("#0077cc", True)
+        for kw in keywords:
+            self.rules.append((QRegularExpression(rf"\b{kw}\b"), keyword_format))
+
+        string_format = fmt("#dd1144")
+        self.rules.append((QRegularExpression(r'"[^"\\]*(\\.[^"\\]*)*"'), string_format))
+        self.rules.append((QRegularExpression(r"'[^'\\]*(\\.[^'\\]*)*'"), string_format))
+
+        comment_format = fmt("#009933")
+        self.rules.append((QRegularExpression(r"#.*"), comment_format))
+
+        number_format = fmt("#aa00aa")
+        self.rules.append((QRegularExpression(r"\b[0-9]+\b"), number_format))
+
+    def highlightBlock(self, text):
+        for pattern, form in self.rules:
+            it = pattern.globalMatch(text)
+            while it.hasNext():
+                m = it.next()
+                self.setFormat(m.capturedStart(), m.capturedLength(), form)
 
 
 class LineNumberArea(QWidget):
@@ -30,6 +71,8 @@ class CodeEditor(QPlainTextEdit):
         self.updateRequest.connect(self.update_line_number_area)
         self.cursorPositionChanged.connect(self.update)
         self.update_line_number_area_width(0)
+
+        self.highlighter = PythonHighlighter(self.document())
 
     def dragEnterEvent(self, event):
         event.ignore()
@@ -90,6 +133,7 @@ class CentralWidget(QWidget):
         self.tabs = []
         self.current_index = -1
         self.untitled_counter = 1
+        self.font_size = 14
 
         self.setAcceptDrops(True)
 
@@ -141,25 +185,10 @@ class CentralWidget(QWidget):
         self.tab_layout.addWidget(self.spacer)
 
         self.editor = CodeEditor()
-        self.editor.setStyleSheet("""
-            QPlainTextEdit {
-                background: white;
-                color: black;
-                font-size: 14px;
-                border: none;
-            }
-        """)
-
         self.output = QTextEdit()
         self.output.setReadOnly(True)
-        self.output.setStyleSheet("""
-            QTextEdit {
-                background: white;
-                color: black;
-                font-size: 14px;
-                border-top: 1px solid #c0c0c0;
-            }
-        """)
+
+        self.apply_font_size()
 
         self.editor.textChanged.connect(self._sync_editor)
         self.editor.textChanged.connect(self._update_status)
@@ -169,6 +198,16 @@ class CentralWidget(QWidget):
         layout.addWidget(self.output, 1)
 
         self.add_tab()
+
+    def apply_font_size(self):
+        font = QFont()
+        font.setPointSize(self.font_size)
+        self.editor.setFont(font)
+        self.output.setFont(font)
+
+    def set_font_size(self, size):
+        self.font_size = size
+        self.apply_font_size()
 
     def _sync_editor(self):
         if 0 <= self.current_index < len(self.tabs):

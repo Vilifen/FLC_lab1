@@ -42,8 +42,4 @@ class MenuBuilder:
         localization_menu.addAction(actions.lang_en)
 
         view_menu = menubar.addMenu(window.labels["view"])
-        font_menu = view_menu.addMenu(window.labels["font_size"])
-
-        word_sizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72]
-        for size in word_sizes:
-            font_menu.addAction(str(size))
+        # Больше НИКАКИХ font_menu здесь нет

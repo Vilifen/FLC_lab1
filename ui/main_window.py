@@ -126,10 +126,30 @@ class MainWindow(QMainWindow):
         MenuBuilder(self, self.actions)
         ToolbarBuilder(self, self.actions)
 
+        self._build_font_menu()
+
         self.set_language("ru")
         self.update_status_bar()
 
         self.central.editor.textChanged.connect(self.update_status_bar)
+
+    def _build_font_menu(self):
+        view_menu = None
+        for act in self.menuBar().actions():
+            menu = act.menu()
+            if menu and menu.title() == self.labels["view"]:
+                view_menu = menu
+                break
+        if view_menu is None:
+            return
+
+        font_menu = view_menu.addMenu(self.labels["font_size"])
+
+        sizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32]
+
+        for size in sizes:
+            action = font_menu.addAction(str(size))
+            action.triggered.connect(lambda _, s=size: self.central.set_font_size(s))
 
     def update_status_bar(self):
         text = self.central.editor.toPlainText()
@@ -152,6 +172,8 @@ class MainWindow(QMainWindow):
         self.menuBar().clear()
         from ui.menus import MenuBuilder
         MenuBuilder(self, self.actions)
+
+        self._build_font_menu()
 
         for tab in self.central.tabs:
             title = tab["title"]
