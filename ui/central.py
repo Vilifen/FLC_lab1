@@ -97,9 +97,6 @@ class CentralWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # -------------------------------
-        # ПАНЕЛЬ ВКЛАДОК + SCROLL
-        # -------------------------------
         self.tab_scroll = QScrollArea()
         self.tab_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.tab_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -121,7 +118,6 @@ class CentralWidget(QWidget):
 
         self.tab_scroll.setWidget(self.tab_bar)
 
-        # ВАЖНО: spacer справа, а не слева
         self.plus_button = QPushButton("+")
         self.plus_button.setFixedWidth(28)
         self.plus_button.setFlat(True)
@@ -138,16 +134,12 @@ class CentralWidget(QWidget):
         """)
         self.plus_button.clicked.connect(self.add_tab)
 
-        # вкладки будут ДО spacer
         self.spacer = QWidget()
         self.spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
         self.tab_layout.addWidget(self.plus_button)
         self.tab_layout.addWidget(self.spacer)
 
-        # -------------------------------
-        # EDITOR + OUTPUT
-        # -------------------------------
         self.editor = CodeEditor()
         self.editor.setStyleSheet("""
             QPlainTextEdit {
@@ -178,9 +170,6 @@ class CentralWidget(QWidget):
 
         self.add_tab()
 
-    # -------------------------------
-    # SERVICE METHODS
-    # -------------------------------
     def _sync_editor(self):
         if 0 <= self.current_index < len(self.tabs):
             self.tabs[self.current_index]["text"] = self.editor.toPlainText()
@@ -200,15 +189,12 @@ class CentralWidget(QWidget):
         if hasattr(w, "update_status_bar"):
             w.update_status_bar()
 
-    # -------------------------------
-    # ADD TAB
-    # -------------------------------
     def add_tab(self, title=None):
         if 0 <= self.current_index < len(self.tabs):
             self._sync_editor()
             self._sync_output()
 
-        if title is None:
+        if not title:
             title = f"Без имени {self.untitled_counter}"
             self.untitled_counter += 1
 
@@ -233,7 +219,6 @@ class CentralWidget(QWidget):
         btn.clicked.connect(partial(self.switch_tab, index))
         btn.mousePressEvent = partial(self._tab_mouse_press, index=index, button=btn)
 
-        # ВСТАВЛЯЕМ ПЕРЕД spacer (а не перед "+")
         self.tab_layout.insertWidget(self.tab_layout.count() - 1, btn)
 
         self.tabs.append({
@@ -249,9 +234,6 @@ class CentralWidget(QWidget):
         self._update_tab_buttons_state()
         self._update_status()
 
-    # -------------------------------
-    # TAB SWITCHING / CLOSING
-    # -------------------------------
     def _tab_mouse_press(self, event, index, button):
         if event.pos().x() > button.width() - 18:
             self._request_close_tab(index)
@@ -289,7 +271,7 @@ class CentralWidget(QWidget):
             return
 
         self.tabs.pop(index)
-        self.tab_layout.itemAt(index + 1).widget().deleteLater()  # +1 из-за "+"
+        self.tab_layout.itemAt(index + 1).widget().deleteLater()
 
         for i, tab in enumerate(self.tabs):
             tab["button"].clicked.disconnect()
@@ -323,9 +305,6 @@ class CentralWidget(QWidget):
         self.editor.blockSignals(False)
         self.output.setPlainText(data["output"])
 
-    # -------------------------------
-    # OUTPUT HELPERS
-    # -------------------------------
     def current_editor(self):
         return self.editor
 
