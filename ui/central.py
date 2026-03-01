@@ -1,4 +1,7 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QPlainTextEdit, QPushButton, QSizePolicy, QMessageBox
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QPlainTextEdit,
+    QPushButton, QSizePolicy, QMessageBox, QScrollArea
+)
 from PyQt6.QtGui import QPainter, QColor
 from PyQt6.QtCore import QRect, QSize, Qt
 from functools import partial
@@ -41,7 +44,9 @@ class CodeEditor(QPlainTextEdit):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         cr = self.contentsRect()
-        self.line_number_area.setGeometry(QRect(cr.left(), cr.top(), self.line_number_area_width(), cr.height()))
+        self.line_number_area.setGeometry(
+            QRect(cr.left(), cr.top(), self.line_number_area_width(), cr.height())
+        )
 
     def update_line_number_area_width(self, _):
         self.setViewportMargins(self.line_number_area_width(), 0, 0, 0)
@@ -50,7 +55,9 @@ class CodeEditor(QPlainTextEdit):
         if dy:
             self.line_number_area.scroll(0, dy)
         else:
-            self.line_number_area.update(0, rect.y(), self.line_number_area.width(), rect.height())
+            self.line_number_area.update(
+                0, rect.y(), self.line_number_area.width(), rect.height()
+            )
 
     def line_number_area_paint_event(self, event):
         painter = QPainter(self.line_number_area)
@@ -59,6 +66,7 @@ class CodeEditor(QPlainTextEdit):
         block_number = block.blockNumber()
         top = int(self.blockBoundingGeometry(block).translated(self.contentOffset()).top())
         bottom = top + int(self.blockBoundingRect(block).height())
+
         while block.isValid() and top <= event.rect().bottom():
             if block.isVisible() and bottom >= event.rect().top():
                 painter.setPen(QColor(0, 0, 0))
@@ -89,9 +97,19 @@ class CentralWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
+        # -------------------------------
+        # ПАНЕЛЬ ВКЛАДОК + SCROLL
+        # -------------------------------
+        self.tab_scroll = QScrollArea()
+        self.tab_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.tab_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.tab_scroll.setWidgetResizable(True)
+        self.tab_scroll.setFixedHeight(48)
+
         self.tab_bar = QWidget()
+        self.tab_bar.setObjectName("tab-bar")
         self.tab_bar.setStyleSheet("""
-            QWidget {
+            #tab-bar {
                 background: #f0f0f0;
                 border-bottom: 1px solid #c0c0c0;
             }
@@ -101,9 +119,9 @@ class CentralWidget(QWidget):
         self.tab_layout.setContentsMargins(4, 2, 4, 0)
         self.tab_layout.setSpacing(2)
 
-        self.spacer = QWidget()
-        self.spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.tab_scroll.setWidget(self.tab_bar)
 
+        # ВАЖНО: spacer справа, а не слева
         self.plus_button = QPushButton("+")
         self.plus_button.setFixedWidth(28)
         self.plus_button.setFlat(True)
@@ -120,9 +138,16 @@ class CentralWidget(QWidget):
         """)
         self.plus_button.clicked.connect(self.add_tab)
 
-        self.tab_layout.addWidget(self.spacer)
-        self.tab_layout.addWidget(self.plus_button)
+        # вкладки будут ДО spacer
+        self.spacer = QWidget()
+        self.spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
+        self.tab_layout.addWidget(self.plus_button)
+        self.tab_layout.addWidget(self.spacer)
+
+        # -------------------------------
+        # EDITOR + OUTPUT
+        # -------------------------------
         self.editor = CodeEditor()
         self.editor.setStyleSheet("""
             QPlainTextEdit {
@@ -147,51 +172,15 @@ class CentralWidget(QWidget):
         self.editor.textChanged.connect(self._sync_editor)
         self.editor.textChanged.connect(self._update_status)
 
-        layout.addWidget(self.tab_bar)
+        layout.addWidget(self.tab_scroll)
         layout.addWidget(self.editor, 3)
         layout.addWidget(self.output, 1)
 
         self.add_tab()
 
-    def _update_status(self):
-        w = self.window()
-        if hasattr(w, "update_status_bar"):
-            w.update_status_bar()
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-
-    def dropEvent(self, event):
-        urls = event.mimeData().urls()
-        if not urls:
-            return
-        path = urls[0].toLocalFile()
-        if not path:
-            return
-        self.open_file_from_path(path)
-        self._update_status()
-
-    def open_file_from_path(self, path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                text = f.read()
-        except Exception:
-            return
-
-        self.add_tab()
-
-        filename = path.split("/")[-1]
-        tab = self.tabs[self.current_index]
-        tab["title"] = filename
-        tab["button"].setText(f"{filename}   ✕")
-        tab["text"] = text
-        tab["modified"] = False
-
-        self.editor.blockSignals(True)
-        self.editor.setPlainText(text)
-        self.editor.blockSignals(False)
-
+    # -------------------------------
+    # SERVICE METHODS
+    # -------------------------------
     def _sync_editor(self):
         if 0 <= self.current_index < len(self.tabs):
             self.tabs[self.current_index]["text"] = self.editor.toPlainText()
@@ -206,13 +195,22 @@ class CentralWidget(QWidget):
         for i, tab in enumerate(self.tabs):
             tab["button"].setChecked(i == self.current_index)
 
-    def add_tab(self):
+    def _update_status(self):
+        w = self.window()
+        if hasattr(w, "update_status_bar"):
+            w.update_status_bar()
+
+    # -------------------------------
+    # ADD TAB
+    # -------------------------------
+    def add_tab(self, title=None):
         if 0 <= self.current_index < len(self.tabs):
             self._sync_editor()
             self._sync_output()
 
-        title = f"Без имени {self.untitled_counter}"
-        self.untitled_counter += 1
+        if title is None:
+            title = f"Без имени {self.untitled_counter}"
+            self.untitled_counter += 1
 
         btn = QPushButton(f"{title}   ✕")
         btn.setCheckable(True)
@@ -235,7 +233,8 @@ class CentralWidget(QWidget):
         btn.clicked.connect(partial(self.switch_tab, index))
         btn.mousePressEvent = partial(self._tab_mouse_press, index=index, button=btn)
 
-        self.tab_layout.insertWidget(self.tab_layout.count() - 2, btn)
+        # ВСТАВЛЯЕМ ПЕРЕД spacer (а не перед "+")
+        self.tab_layout.insertWidget(self.tab_layout.count() - 1, btn)
 
         self.tabs.append({
             "title": title,
@@ -250,6 +249,9 @@ class CentralWidget(QWidget):
         self._update_tab_buttons_state()
         self._update_status()
 
+    # -------------------------------
+    # TAB SWITCHING / CLOSING
+    # -------------------------------
     def _tab_mouse_press(self, event, index, button):
         if event.pos().x() > button.width() - 18:
             self._request_close_tab(index)
@@ -287,7 +289,7 @@ class CentralWidget(QWidget):
             return
 
         self.tabs.pop(index)
-        self.tab_layout.itemAt(index).widget().deleteLater()
+        self.tab_layout.itemAt(index + 1).widget().deleteLater()  # +1 из-за "+"
 
         for i, tab in enumerate(self.tabs):
             tab["button"].clicked.disconnect()
@@ -321,6 +323,9 @@ class CentralWidget(QWidget):
         self.editor.blockSignals(False)
         self.output.setPlainText(data["output"])
 
+    # -------------------------------
+    # OUTPUT HELPERS
+    # -------------------------------
     def current_editor(self):
         return self.editor
 
