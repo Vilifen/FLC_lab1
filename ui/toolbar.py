@@ -7,7 +7,6 @@ class ToolbarBuilder:
         toolbar = QToolBar()
         toolbar.setMovable(False)
 
-        # Белый фон + увеличенная высота
         toolbar.setStyleSheet("""
             QToolBar {
                 background: white;
@@ -25,7 +24,6 @@ class ToolbarBuilder:
             }
         """)
 
-        # Увеличенные иконки
         toolbar.setIconSize(QSize(28, 28))
 
         window.addToolBar(toolbar)
@@ -33,12 +31,23 @@ class ToolbarBuilder:
         toolbar.addAction(actions.new)
         toolbar.addAction(actions.open)
         toolbar.addAction(actions.save)
+
         toolbar.addSeparator()
+
         toolbar.addAction(actions.undo)
         toolbar.addAction(actions.redo)
+
         toolbar.addSeparator()
+
         toolbar.addAction(actions.cut)
         toolbar.addAction(actions.copy)
         toolbar.addAction(actions.paste)
+
         toolbar.addSeparator()
+
         toolbar.addAction(actions.run)
+
+        toolbar.addSeparator()
+
+        toolbar.addAction(actions.help)
+        toolbar.addAction(actions.about)

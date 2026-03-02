@@ -1,25 +1,27 @@
-from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import QStyle, QMessageBox
+from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtWidgets import QMessageBox
 
 
 class ActionManager:
     def __init__(self, window, controller):
         self.win = window
         self.ctrl = controller
-        style = window.style()
 
-        self.new = QAction(style.standardIcon(QStyle.StandardPixmap.SP_FileIcon), "", window)
-        self.open = QAction(style.standardIcon(QStyle.StandardPixmap.SP_DialogOpenButton), "", window)
-        self.save = QAction(style.standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton), "", window)
+        self.new = QAction(QIcon("ui/icons/create.png"), "", window)
+        self.open = QAction(QIcon("ui/icons/open.png"), "", window)
+        self.save = QAction(QIcon("ui/icons/save.png"), "", window)
 
-        self.undo = QAction(style.standardIcon(QStyle.StandardPixmap.SP_ArrowBack), "", window)
-        self.redo = QAction(style.standardIcon(QStyle.StandardPixmap.SP_ArrowForward), "", window)
+        self.undo = QAction(QIcon("ui/icons/cancel.png"), "", window)
+        self.redo = QAction(QIcon("ui/icons/repeat.png"), "", window)
 
-        self.copy = QAction(style.standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView), "", window)
-        self.cut = QAction(style.standardIcon(QStyle.StandardPixmap.SP_TrashIcon), "", window)
-        self.paste = QAction(style.standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), "", window)
+        self.copy = QAction(QIcon("ui/icons/copy.png"), "", window)
+        self.cut = QAction(QIcon("ui/icons/cut.png"), "", window)
+        self.paste = QAction(QIcon("ui/icons/insert.png"), "", window)
 
-        self.run = QAction(style.standardIcon(QStyle.StandardPixmap.SP_MediaPlay), "", window)
+        self.run = QAction(QIcon("ui/icons/launch.png"), "", window)
+
+        self.help = QAction(QIcon("ui/icons/reference.png"), "", window)
+        self.about = QAction(QIcon("ui/icons/information.png"), "", window)
 
         self.menu_new = QAction("", window)
         self.menu_open = QAction("", window)
@@ -68,6 +70,8 @@ class ActionManager:
         self.paste.setText(L["paste"])
 
         self.run.setText(L["run"])
+        self.help.setText(L["help"])
+        self.about.setText(L["about"])
 
         self.menu_new.setText(L["new"])
         self.menu_open.setText(L["open"])
@@ -134,6 +138,9 @@ class ActionManager:
 
         self.menu_help.triggered.connect(lambda: self.ctrl.help(self.win, self.win.get_output()))
         self.menu_about.triggered.connect(lambda: self.ctrl.about(self.win, self.win.get_output()))
+
+        self.help.triggered.connect(lambda: self.ctrl.help(self.win, self.win.get_output()))
+        self.about.triggered.connect(lambda: self.ctrl.about(self.win, self.win.get_output()))
 
         self.lang_ru.triggered.connect(lambda: self.win.set_language("ru"))
         self.lang_en.triggered.connect(lambda: self.win.set_language("en"))
