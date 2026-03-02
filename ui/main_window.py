@@ -144,7 +144,6 @@ class MainWindow(QMainWindow):
             return
 
         font_menu = view_menu.addMenu(self.labels["font_size"])
-
         sizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32]
 
         for size in sizes:
@@ -168,6 +167,8 @@ class MainWindow(QMainWindow):
             self.labels = self.labels_ru
         else:
             self.labels = self.labels_en
+
+        self.actions.update_texts()
 
         self.menuBar().clear()
         from ui.menus import MenuBuilder

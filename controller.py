@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QFileDialog
 import os
+from ui.about_dialog import AboutDialog
 
 
 class Controller:
@@ -85,5 +86,5 @@ class Controller:
         window.central.show_build_log("Справка: " + window.labels["help_text"])
 
     def about(self, window, output):
-        window.central.switch_output("build")
-        window.central.show_build_log("О программе: " + window.labels["about_text"])
+        dlg = AboutDialog(window)
+        dlg.exec()

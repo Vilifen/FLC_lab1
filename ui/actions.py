@@ -53,6 +53,8 @@ class ActionManager:
         self.lang_ru = QAction("Русский", window)
         self.lang_en = QAction("English", window)
 
+        self.select_line = QAction("", window)
+
         self._add_shortcuts()
         self._connect()
         self.update_texts()
@@ -98,7 +100,7 @@ class ActionManager:
         self.menu_delete.setShortcut("Delete")
         self.menu_select_all.setShortcut("Ctrl+A")
 
-        self.menu_text_source.setShortcut("Ctrl+L")
+        self.select_line.setShortcuts(["Ctrl+L", "Meta+L"])
 
     def update_texts(self):
         L = self.win.labels
@@ -188,5 +190,16 @@ class ActionManager:
         self.lang_ru.triggered.connect(lambda: self.win.set_language("ru"))
         self.lang_en.triggered.connect(lambda: self.win.set_language("en"))
 
+        self.select_line.triggered.connect(self._select_current_line)
+
     def _info(self, text):
         QMessageBox.information(self.win, self.win.labels["info_title"], text)
+
+    def _select_current_line(self):
+        editor = self.win.get_editor()
+        if editor is None:
+            return
+
+        cursor = editor.textCursor()
+        cursor.select(cursor.SelectionType.LineUnderCursor)
+        editor.setTextCursor(cursor)
