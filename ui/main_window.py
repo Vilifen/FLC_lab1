@@ -1,5 +1,8 @@
-from PyQt6.QtWidgets import QMainWindow, QMessageBox, QStatusBar
-from ui.central import CentralWidget
+from PyQt6.QtWidgets import QMainWindow, QMessageBox, QStatusBar, QDialog, QVBoxLayout, QTextBrowser
+from PyQt6.QtCore import QUrl
+import os
+
+from ui.central.central_widget import CentralWidget
 from ui.actions import ActionManager
 from ui.menus import MenuBuilder
 from ui.toolbar import ToolbarBuilder
@@ -137,6 +140,22 @@ class MainWindow(QMainWindow):
 
         self.central.editor.textChanged.connect(self.update_status_bar)
 
+        self.setAcceptDrops(True)
+
+    def show_help(self):
+        dlg = QDialog(self)
+        dlg.setWindowTitle(self.labels["help_text"])
+        dlg.resize(900, 650)
+
+        layout = QVBoxLayout(dlg)
+        browser = QTextBrowser()
+        layout.addWidget(browser)
+
+        path = os.path.abspath("ui/html files/user_guide.html")
+        browser.setSource(QUrl.fromLocalFile(path))
+
+        dlg.exec()
+
     def _build_font_menu(self):
         view_menu = None
         for act in self.menuBar().actions():
@@ -214,3 +233,9 @@ class MainWindow(QMainWindow):
                 if clicked is yes_btn:
                     self.actions.save.trigger()
         event.accept()
+
+    def dragEnterEvent(self, event):
+        event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        self.central.dropEvent(event)
