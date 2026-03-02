@@ -54,6 +54,8 @@ class MainWindow(QMainWindow):
             "status_lang": "Язык",
             "status_size": "Размер",
             "status_lines": "Строк",
+            "build": "Сборка",
+            "errors": "Ошибки",
         }
 
         self.labels_en = {
@@ -101,6 +103,8 @@ class MainWindow(QMainWindow):
             "status_lang": "Language",
             "status_size": "Size",
             "status_lines": "Lines",
+            "build": "Build",
+            "errors": "Errors",
         }
 
         self.labels = self.labels_ru
@@ -144,7 +148,6 @@ class MainWindow(QMainWindow):
             return
 
         font_menu = view_menu.addMenu(self.labels["font_size"])
-
         sizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32]
 
         for size in sizes:
@@ -169,6 +172,8 @@ class MainWindow(QMainWindow):
         else:
             self.labels = self.labels_en
 
+        self.actions.update_texts()
+
         self.menuBar().clear()
         from ui.menus import MenuBuilder
         MenuBuilder(self, self.actions)
@@ -178,6 +183,9 @@ class MainWindow(QMainWindow):
         for tab in self.central.tabs:
             title = tab["title"]
             tab["button"].setText(f"{title}   ✕")
+
+        self.central.build_btn.setText(self.labels["build"])
+        self.central.err_btn.setText(self.labels["errors"])
 
         self.update_status_bar()
         self.repaint()

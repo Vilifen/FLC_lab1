@@ -1,25 +1,27 @@
-from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import QStyle, QMessageBox
+from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtWidgets import QMessageBox
 
 
 class ActionManager:
     def __init__(self, window, controller):
         self.win = window
         self.ctrl = controller
-        style = window.style()
 
-        self.new = QAction(style.standardIcon(QStyle.StandardPixmap.SP_FileIcon), "", window)
-        self.open = QAction(style.standardIcon(QStyle.StandardPixmap.SP_DialogOpenButton), "", window)
-        self.save = QAction(style.standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton), "", window)
+        self.new = QAction(QIcon("ui/icons/create.png"), "", window)
+        self.open = QAction(QIcon("ui/icons/open.png"), "", window)
+        self.save = QAction(QIcon("ui/icons/save.png"), "", window)
 
-        self.undo = QAction(style.standardIcon(QStyle.StandardPixmap.SP_ArrowBack), "", window)
-        self.redo = QAction(style.standardIcon(QStyle.StandardPixmap.SP_ArrowForward), "", window)
+        self.undo = QAction(QIcon("ui/icons/cancel.png"), "", window)
+        self.redo = QAction(QIcon("ui/icons/repeat.png"), "", window)
 
-        self.copy = QAction(style.standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView), "", window)
-        self.cut = QAction(style.standardIcon(QStyle.StandardPixmap.SP_TrashIcon), "", window)
-        self.paste = QAction(style.standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), "", window)
+        self.copy = QAction(QIcon("ui/icons/copy.png"), "", window)
+        self.cut = QAction(QIcon("ui/icons/cut.png"), "", window)
+        self.paste = QAction(QIcon("ui/icons/insert.png"), "", window)
 
-        self.run = QAction(style.standardIcon(QStyle.StandardPixmap.SP_MediaPlay), "", window)
+        self.run = QAction(QIcon("ui/icons/launch.png"), "", window)
+
+        self.help = QAction(QIcon("ui/icons/reference.png"), "", window)
+        self.about = QAction(QIcon("ui/icons/information.png"), "", window)
 
         self.menu_new = QAction("", window)
         self.menu_open = QAction("", window)
@@ -51,8 +53,54 @@ class ActionManager:
         self.lang_ru = QAction("Русский", window)
         self.lang_en = QAction("English", window)
 
+        self.select_line = QAction("", window)
+
+        self._add_shortcuts()
         self._connect()
         self.update_texts()
+
+    def _add_shortcuts(self):
+        self.new.setShortcut("Ctrl+N")
+        self.menu_new.setShortcut("Ctrl+N")
+
+        self.open.setShortcut("Ctrl+O")
+        self.menu_open.setShortcut("Ctrl+O")
+
+        self.save.setShortcut("Ctrl+S")
+        self.menu_save.setShortcut("Ctrl+S")
+
+        self.menu_save_as.setShortcut("Ctrl+Shift+S")
+
+        self.undo.setShortcut("Ctrl+Z")
+        self.menu_undo.setShortcut("Ctrl+Z")
+
+        self.redo.setShortcut("Ctrl+Y")
+        self.menu_redo.setShortcut("Ctrl+Y")
+
+        self.cut.setShortcut("Ctrl+X")
+        self.menu_cut.setShortcut("Ctrl+X")
+
+        self.copy.setShortcut("Ctrl+C")
+        self.menu_copy.setShortcut("Ctrl+C")
+
+        self.paste.setShortcut("Ctrl+V")
+        self.menu_paste.setShortcut("Ctrl+V")
+
+        self.run.setShortcut("F5")
+        self.menu_run.setShortcut("F5")
+
+        self.help.setShortcut("F1")
+        self.menu_help.setShortcut("F1")
+
+        self.about.setShortcut("Ctrl+I")
+        self.menu_about.setShortcut("Ctrl+I")
+
+        self.menu_exit.setShortcut("Ctrl+Q")
+
+        self.menu_delete.setShortcut("Delete")
+        self.menu_select_all.setShortcut("Ctrl+A")
+
+        self.select_line.setShortcuts(["Ctrl+L", "Meta+L"])
 
     def update_texts(self):
         L = self.win.labels
@@ -68,6 +116,8 @@ class ActionManager:
         self.paste.setText(L["paste"])
 
         self.run.setText(L["run"])
+        self.help.setText(L["help"])
+        self.about.setText(L["about"])
 
         self.menu_new.setText(L["new"])
         self.menu_open.setText(L["open"])
@@ -92,7 +142,6 @@ class ActionManager:
         self.menu_text_source.setText(L["source"])
 
         self.menu_run.setText(L["run"])
-
         self.menu_help.setText(L["help"])
         self.menu_about.setText(L["about"])
 
@@ -135,8 +184,22 @@ class ActionManager:
         self.menu_help.triggered.connect(lambda: self.ctrl.help(self.win, self.win.get_output()))
         self.menu_about.triggered.connect(lambda: self.ctrl.about(self.win, self.win.get_output()))
 
+        self.help.triggered.connect(lambda: self.ctrl.help(self.win, self.win.get_output()))
+        self.about.triggered.connect(lambda: self.ctrl.about(self.win, self.win.get_output()))
+
         self.lang_ru.triggered.connect(lambda: self.win.set_language("ru"))
         self.lang_en.triggered.connect(lambda: self.win.set_language("en"))
 
+        self.select_line.triggered.connect(self._select_current_line)
+
     def _info(self, text):
         QMessageBox.information(self.win, self.win.labels["info_title"], text)
+
+    def _select_current_line(self):
+        editor = self.win.get_editor()
+        if editor is None:
+            return
+
+        cursor = editor.textCursor()
+        cursor.select(cursor.SelectionType.LineUnderCursor)
+        editor.setTextCursor(cursor)
