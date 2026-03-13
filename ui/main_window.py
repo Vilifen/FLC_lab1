@@ -1,4 +1,7 @@
-from PyQt6.QtWidgets import QMainWindow, QMessageBox, QStatusBar, QDialog, QVBoxLayout, QTextBrowser
+from PyQt6.QtWidgets import (
+    QMainWindow, QMessageBox, QStatusBar, QDialog,
+    QVBoxLayout, QTextBrowser
+)
 from PyQt6.QtCore import QUrl
 import os
 
@@ -6,6 +9,9 @@ from ui.central.central_widget import CentralWidget
 from ui.actions import ActionManager
 from ui.menus import MenuBuilder
 from ui.toolbar import ToolbarBuilder
+
+from L2.integration import run_scanner
+from L2.navigation import navigate_to_error
 
 
 class MainWindow(QMainWindow):
@@ -111,6 +117,7 @@ class MainWindow(QMainWindow):
         }
 
         self.labels = self.labels_ru
+        self.last_rows = ([], [])
 
         self.setWindowTitle("Текстовый редактор")
         self.resize(1000, 700)
@@ -141,6 +148,28 @@ class MainWindow(QMainWindow):
         self.central.editor.textChanged.connect(self.update_status_bar)
 
         self.setAcceptDrops(True)
+
+        self.actions.run.triggered.connect(self.run_scanner_action)
+
+    def run_scanner_action(self):
+        editor = self.central.editor
+
+        token_rows, error_rows = run_scanner(editor)
+        self.last_rows = (token_rows, error_rows)
+
+        rows = token_rows if self.central.output_mode == "build" else error_rows
+        self.central.show_results_table(rows)
+
+        def on_click(item):
+            row = item.row()
+            if 0 <= row < len(rows) and "line" in rows[row] and "col" in rows[row]:
+                navigate_to_error(editor, rows[row]["line"], rows[row]["col"])
+
+        try:
+            self.central.table.itemClicked.disconnect()
+        except TypeError:
+            pass
+        self.central.table.itemClicked.connect(on_click)
 
     def show_help(self):
         dlg = QDialog(self)

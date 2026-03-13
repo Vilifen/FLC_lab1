@@ -159,8 +159,8 @@ class ActionManager:
         self.menu_text_literature.triggered.connect(lambda: self._info(self.win.labels["literature"]))
         self.menu_text_source.triggered.connect(lambda: self._info(self.win.labels["source"]))
 
-        self.menu_run.triggered.connect(lambda: self.ctrl.run(self.win))
-        self.run.triggered.connect(lambda: self.ctrl.run(self.win))
+        self.menu_run.triggered.connect(self.win.run_scanner_action)
+        self.run.triggered.connect(self.win.run_scanner_action)
 
         self.menu_help.triggered.connect(self.win.show_help)
         self.help.triggered.connect(self.win.show_help)
@@ -180,7 +180,6 @@ class ActionManager:
         editor = self.win.get_editor()
         if editor is None:
             return
-
         cursor = editor.textCursor()
         cursor.select(cursor.SelectionType.LineUnderCursor)
         editor.setTextCursor(cursor)
