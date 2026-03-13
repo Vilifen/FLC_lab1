@@ -75,7 +75,7 @@ class CentralWidget(QWidget):
         self.output_tabs_layout.setContentsMargins(4, 0, 4, 0)
         self.output_tabs_layout.setSpacing(2)
 
-        self.build_btn = QPushButton("Сборка")
+        self.build_btn = QPushButton("Результаты")
         self.build_btn.setCheckable(True)
         self.build_btn.setFixedHeight(32)
         self.build_btn.clicked.connect(lambda: self.switch_output("build"))
