@@ -1,4 +1,4 @@
-from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtGui import QAction, QIcon, QKeySequence
 from PyQt6.QtWidgets import QMessageBox
 
 
@@ -20,7 +20,6 @@ class ActionManager:
 
         self.run = QAction(QIcon("ui/icons/launch.png"), "", window)
 
-        # Иконка справки
         self.help = QAction(QIcon("ui/icons/reference.png"), "", window)
         self.about = QAction(QIcon("ui/icons/information.png"), "", window)
 
@@ -61,46 +60,26 @@ class ActionManager:
         self.update_texts()
 
     def _add_shortcuts(self):
-        self.new.setShortcut("Ctrl+N")
-        self.menu_new.setShortcut("Ctrl+N")
-
-        self.open.setShortcut("Ctrl+O")
-        self.menu_open.setShortcut("Ctrl+O")
-
-        self.save.setShortcut("Ctrl+S")
-        self.menu_save.setShortcut("Ctrl+S")
-
+        self.menu_new.setShortcut(QKeySequence.StandardKey.New)
+        self.menu_open.setShortcut(QKeySequence.StandardKey.Open)
+        self.menu_save.setShortcut(QKeySequence.StandardKey.Save)
         self.menu_save_as.setShortcut("Ctrl+Shift+S")
 
-        self.undo.setShortcut("Ctrl+Z")
-        self.menu_undo.setShortcut("Ctrl+Z")
+        self.menu_undo.setShortcut(QKeySequence.StandardKey.Undo)
+        self.menu_redo.setShortcut(QKeySequence.StandardKey.Redo)
+        self.menu_cut.setShortcut(QKeySequence.StandardKey.Cut)
+        self.menu_copy.setShortcut(QKeySequence.StandardKey.Copy)
+        self.menu_paste.setShortcut(QKeySequence.StandardKey.Paste)
 
-        self.redo.setShortcut("Ctrl+Y")
-        self.menu_redo.setShortcut("Ctrl+Y")
+        self.menu_delete.setShortcut(QKeySequence.StandardKey.Delete)
+        self.menu_select_all.setShortcut(QKeySequence.StandardKey.SelectAll)
 
-        self.cut.setShortcut("Ctrl+X")
-        self.menu_cut.setShortcut("Ctrl+X")
-
-        self.copy.setShortcut("Ctrl+C")
-        self.menu_copy.setShortcut("Ctrl+C")
-
-        self.paste.setShortcut("Ctrl+V")
-        self.menu_paste.setShortcut("Ctrl+V")
-
-        self.run.setShortcut("F5")
         self.menu_run.setShortcut("F5")
 
-        # Горячая клавиша справки
-        self.help.setShortcut("F1")
-        self.menu_help.setShortcut("F1")
-
-        self.about.setShortcut("Ctrl+I")
+        self.menu_help.setShortcut(QKeySequence.StandardKey.HelpContents)
         self.menu_about.setShortcut("Ctrl+I")
 
-        self.menu_exit.setShortcut("Ctrl+Q")
-
-        self.menu_delete.setShortcut("Delete")
-        self.menu_select_all.setShortcut("Ctrl+A")
+        self.menu_exit.setShortcut(QKeySequence.StandardKey.Quit)
 
         self.select_line.setShortcuts(["Ctrl+L", "Meta+L"])
 
@@ -180,14 +159,12 @@ class ActionManager:
         self.menu_text_literature.triggered.connect(lambda: self._info(self.win.labels["literature"]))
         self.menu_text_source.triggered.connect(lambda: self._info(self.win.labels["source"]))
 
-        self.menu_run.triggered.connect(lambda: self.ctrl.run(self.win))
-        self.run.triggered.connect(lambda: self.ctrl.run(self.win))
+        self.menu_run.triggered.connect(self.win.run_scanner_action)
+        self.run.triggered.connect(self.win.run_scanner_action)
 
-        # Справка — теперь вызывает окно HTML
         self.menu_help.triggered.connect(self.win.show_help)
         self.help.triggered.connect(self.win.show_help)
 
-        # О программе
         self.menu_about.triggered.connect(lambda: self.ctrl.about(self.win, self.win.get_output()))
         self.about.triggered.connect(lambda: self.ctrl.about(self.win, self.win.get_output()))
 
@@ -203,7 +180,6 @@ class ActionManager:
         editor = self.win.get_editor()
         if editor is None:
             return
-
         cursor = editor.textCursor()
         cursor.select(cursor.SelectionType.LineUnderCursor)
         editor.setTextCursor(cursor)
