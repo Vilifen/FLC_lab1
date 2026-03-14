@@ -90,7 +90,7 @@ class CentralWidget(QWidget):
 
         self.table = QTableWidget()
         self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["Код", "Тип", "Лексема", "Местоположение"])
+        self.table.setHorizontalHeaderLabels(["Условный код", "Тип лексемы", "Лексема", "Местоположение"])
         self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
