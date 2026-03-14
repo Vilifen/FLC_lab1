@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QPlainTextEdit
 from PyQt6.QtGui import QPainter, QColor
 from PyQt6.QtCore import QRect, Qt
 from .line_numbers import LineNumberArea
-from .highlighter import PythonHighlighter
+from .highlighter import PHPHighlighter
 
 
 class CodeEditor(QPlainTextEdit):
@@ -17,7 +17,7 @@ class CodeEditor(QPlainTextEdit):
         self.cursorPositionChanged.connect(self.update)
         self.update_line_number_area_width(0)
 
-        self.highlighter = PythonHighlighter(self.document())
+        self.highlighter = PHPHighlighter(self.document())
 
     def dragEnterEvent(self, event):
         event.ignore()
