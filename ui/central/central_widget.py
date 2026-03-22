@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QSizePolicy,
     QScrollArea, QTableWidget, QTableWidgetItem, QHeaderView
 )
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 from functools import partial
 from ui.editor.code_editor import CodeEditor
@@ -250,39 +250,50 @@ class CentralWidget(QWidget):
         if self.output_mode == "errors":
             self.table.setColumnCount(3)
             self.table.setHorizontalHeaderLabels(["Неверный фрагмент", "Местоположение", "Описание"])
-        else:
-            self.table.setColumnCount(4)
-            self.table.setHorizontalHeaderLabels(["Условный код", "Тип лексемы", "Лексема", "Местоположение"])
+            self.table.setRowCount(len(rows) + 1)
 
-        self.table.setRowCount(len(rows))
+            for i, r in enumerate(rows):
+                fragment = r.get("fragment", r.get("lexeme", ""))
+                location = r.get("location", "")
+                description = r.get("description", r.get("type", ""))
 
-        for i, r in enumerate(rows):
-            if self.output_mode == "errors":
                 items = [
-                    QTableWidgetItem(r["lexeme"]),
-                    QTableWidgetItem(r["location"]),
-                    QTableWidgetItem(r["type"])
-                ]
-            else:
-                items = [
-                    QTableWidgetItem(str(r["code"])),
-                    QTableWidgetItem(r["type"]),
-                    QTableWidgetItem(r["lexeme"]),
-                    QTableWidgetItem(r["location"])
+                    QTableWidgetItem(fragment),
+                    QTableWidgetItem(location),
+                    QTableWidgetItem(description)
                 ]
 
-            for col, item in enumerate(items):
-                self.table.setItem(i, col, item)
+                for col, item in enumerate(items):
+                    self.table.setItem(i, col, item)
 
-        if self.output_mode == "errors":
-            self.table.insertRow(self.table.rowCount())
+            total_row = len(rows)
             total_item = QTableWidgetItem("Общее количество ошибок:")
             total_item.setFlags(Qt.ItemFlag.ItemIsEnabled)
             count_item = QTableWidgetItem(str(len(rows)))
             count_item.setFlags(Qt.ItemFlag.ItemIsEnabled)
 
-            self.table.setItem(self.table.rowCount() - 1, 0, total_item)
-            self.table.setItem(self.table.rowCount() - 1, 1, count_item)
+            self.table.setItem(total_row, 0, total_item)
+            self.table.setItem(total_row, 1, count_item)
+        else:
+            self.table.setColumnCount(4)
+            self.table.setHorizontalHeaderLabels(["Условный код", "Тип лексемы", "Лексема", "Местоположение"])
+            self.table.setRowCount(len(rows))
+
+            for i, r in enumerate(rows):
+                code = str(r.get("code", ""))
+                type_ = r.get("type", "")
+                lexeme = r.get("lexeme", "")
+                location = r.get("location", "")
+
+                items = [
+                    QTableWidgetItem(code),
+                    QTableWidgetItem(type_),
+                    QTableWidgetItem(lexeme),
+                    QTableWidgetItem(location)
+                ]
+
+                for col, item in enumerate(items):
+                    self.table.setItem(i, col, item)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
