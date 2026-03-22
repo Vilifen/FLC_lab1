@@ -118,10 +118,14 @@ class Scanner:
             self.tokens.append(Token(TokenType.KEYWORD, value, start_line, start_col))
             return
 
+        if value.isalpha():
+            self.tokens.append(Token(TokenType.IDENTIFIER, value, start_line, start_col))
+            return
+
         self.errors.append(
             ScanError(
                 ERROR_CODES["INVALID_CHAR"],
-                "Переменные должны начинаться с '$'",
+                "Недопустимое слово",
                 start_line,
                 start_col,
                 value

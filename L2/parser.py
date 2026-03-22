@@ -8,6 +8,7 @@ class Parser:
         self.tokens = tokens
         self.pos = 0
         self.errors = []
+        self.top_level_while_error_reported = False
 
     def parse(self):
         while not self._eof():
@@ -25,8 +26,11 @@ class Parser:
             self._parse_while()
             return
 
-        self._error("Ожидалось ключевое слово 'while'")
-        self._advance()
+        if not self.top_level_while_error_reported:
+            self._error("Ожидалось ключевое слово 'while'")
+            self.top_level_while_error_reported = True
+        else:
+            self._advance()
 
     def _parse_while(self):
         self._skip_whitespace()

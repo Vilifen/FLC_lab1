@@ -256,6 +256,9 @@ class MainWindow(QMainWindow):
             f"{self.labels['status_lines']}: {lines}"
         )
 
+    def get_editor(self):
+        return self.central.editor
+
     def dragEnterEvent(self, event):
         event.acceptProposedAction()
 

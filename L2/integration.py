@@ -27,25 +27,9 @@ def run_scanner(editor):
         })
 
     for e in all_errors:
-        already_in_tokens = any(
-            t.line == e.line and t.column == e.column
-            for t in tokens
-        )
-
-        if not already_in_tokens:
-            row = {
-                "code": e.code,
-                "type": "недопустимый символ",
-                "lexeme": e.char,
-                "location": f"строка {e.line}, {e.column}",
-                "line": e.line,
-                "col": e.column
-            }
-            token_rows.append(row)
-
         error_rows.append({
             "code": e.code,
-            "type": "недопустимый символ",
+            "type": e.message,
             "lexeme": e.char,
             "location": f"строка {e.line}, {e.column}",
             "line": e.line,
