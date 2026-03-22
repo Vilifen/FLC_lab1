@@ -169,8 +169,6 @@ class CentralWidget(QWidget):
             self.close_tab(index)
             return
 
-        w = self.window()
-
         from PyQt6.QtWidgets import QMessageBox
         msg = QMessageBox(self)
         msg.setWindowTitle("Сохранить файл?")
@@ -185,7 +183,7 @@ class CentralWidget(QWidget):
         if clicked is cancel_btn:
             return
         if clicked is yes_btn:
-            w.actions.save.trigger()
+            self.window().actions.save.trigger()
 
         self.close_tab(index)
         self._update_status()
@@ -195,13 +193,21 @@ class CentralWidget(QWidget):
         if len(self.tabs) == 1:
             return
 
-        self.tabs.pop(index)
-        self.tab_layout.itemAt(index + 1).widget().deleteLater()
+        tab = self.tabs.pop(index)
+        btn = tab["button"]
 
-        for i, tab in enumerate(self.tabs):
-            tab["button"].clicked.disconnect()
-            tab["button"].clicked.connect(partial(self.switch_tab, i))
-            tab["button"].mousePressEvent = partial(self._tab_mouse_press, index=i, button=tab["button"])
+        layout_index = self.tab_layout.indexOf(btn)
+        if layout_index != -1:
+            item = self.tab_layout.takeAt(layout_index)
+            if item is not None:
+                w = item.widget()
+                if w is not None:
+                    w.deleteLater()
+
+        for i, t in enumerate(self.tabs):
+            t["button"].clicked.disconnect()
+            t["button"].clicked.connect(partial(self.switch_tab, i))
+            t["button"].mousePressEvent = partial(self._tab_mouse_press, index=i, button=t["button"])
 
         self.current_index = max(0, index - 1)
         self._load_tab()
