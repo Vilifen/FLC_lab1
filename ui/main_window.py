@@ -276,3 +276,4 @@ class MainWindow(QMainWindow):
 
     def dropEvent(self, event):
         self.central.dropEvent(event)
+
