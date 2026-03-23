@@ -36,44 +36,35 @@ class Parser:
         self.body_had_error = False
         self._skip_ws()
         self.parse_start()
-
         if not self._eof() and not self.body_had_error:
             self._check_unexpected_tokens()
-
         return self.errors
 
     def parse_start(self):
         self._skip_ws()
         if not self._accept(TokenType.KEYWORD, "while"):
             self._irons_correction(["while"], "ключевое слово 'while'")
-
         self._skip_ws()
         if not self._accept(TokenType.SEPARATOR, "("):
             self._irons_correction(["("], "'('")
-
         self._skip_ws()
         self.parse_condition()
-
         self._skip_ws()
         if not self._accept(TokenType.SEPARATOR, ")"):
             self._irons_correction([")"], "')'")
-
         self._skip_ws()
         if not self._accept(TokenType.SEPARATOR, "{"):
             self._irons_correction(["{"], "'{'")
-
+            self.body_had_error = True
         self._skip_ws()
-        self.parse_body()
-
+        if not self.body_had_error:
+            self.parse_body()
         if self.body_had_error:
             return
-
         self._skip_ws()
-
         if self._eof():
             self._irons_correction(["}"], "'}' после тела цикла", is_eof=True)
             return
-
         if self.tokens[self.pos].value == "}":
             self.pos += 1
             self._skip_ws()
@@ -83,20 +74,20 @@ class Parser:
                 self.pos += 1
                 self._skip_ws()
             return
-
         self._skip_ws()
-
         if self._eof():
             self._irons_correction([";"], "';' в конце инструкции while", is_eof=True)
             return
-
         if not self._accept(TokenType.SEPARATOR, ";"):
             self._irons_correction([";"], "';' в конце инструкции while")
 
     def parse_condition(self):
         self._skip_ws()
+        prev_errors = len(self.errors)
         self.parse_simple_expr()
-
+        if len(self.errors) > prev_errors:
+            self._skip_until_closing_paren()
+            return
         self._skip_ws()
         if self._accept(TokenType.OPERATOR, "&&") or self._accept(TokenType.OPERATOR, "||"):
             self._skip_ws()
@@ -104,81 +95,70 @@ class Parser:
 
     def parse_simple_expr(self):
         self._skip_ws()
-        self.parse_var()
-
+        if not self.parse_var():
+            return
         self._skip_ws()
         if not self._accept(TokenType.OPERATOR):
             self._irons_correction(["<"], "реляционная операция")
             return
-
         self._skip_ws()
         if self._accept(TokenType.NUMBER):
             return
-
         if self._accept(TokenType.IDENTIFIER):
             return
-
         self._irons_correction(["$var"], "число или переменная")
 
     def parse_var(self):
         self._skip_ws()
         if not self._accept(TokenType.IDENTIFIER):
             self._irons_correction(["$id"], "переменная вида $id")
-            return
-
+            return False
         tok = self.tokens[self.pos - 1]
         if not tok.value.startswith("$"):
             correct_var = "$" + tok.value
             self._irons_correction([correct_var], "переменная вида $id", is_var_correction=True)
+            return False
+        return True
 
     def parse_body(self):
         self._skip_ws()
-
         if self._eof():
             self.body_had_error = True
             self._irons_correction(["}"], "'}' после тела цикла", is_eof=True)
             return
-
         if self.tokens[self.pos].value == "}":
             self.body_had_error = True
             self._irons_correction(["}"], "'}' после тела цикла", advance=False)
             return
-
         while not self._eof() and self.tokens[self.pos].value != "}":
             if self.tokens[self.pos].type != TokenType.IDENTIFIER:
                 self.body_had_error = True
                 self._irons_correction(["}"], "'}' после тела цикла")
                 return
-
             prev_errors = len(self.errors)
             self.parse_var()
             if len(self.errors) > prev_errors:
                 self.body_had_error = True
                 self._skip_until_stmt_end()
                 return
-
             self._skip_ws()
             if self._eof():
                 self.body_had_error = True
                 self._irons_correction(["++"], "оператор ++ или --", is_eof=True)
                 return
-
             if not (self._accept(TokenType.OPERATOR, "++") or self._accept(TokenType.OPERATOR, "--")):
                 self.body_had_error = True
                 self._irons_correction(["++"], "оператор ++ или --")
                 return
-
             self._skip_ws()
             if self._eof():
                 self.body_had_error = True
                 self._irons_correction([";"], "';' после оператора ++/--", is_eof=True)
                 return
-
             if not self._accept(TokenType.SEPARATOR, ";"):
                 self.body_had_error = True
                 self._irons_correction([";"], "';' после оператора ++/--")
                 return
-
             self._skip_ws()
 
     def _skip_until_stmt_end(self):
@@ -188,23 +168,23 @@ class Parser:
             self.pos += 1
         self._skip_ws()
 
+    def _skip_until_closing_paren(self):
+        while not self._eof() and self.tokens[self.pos].value != ")":
+            self.pos += 1
+
     def _irons_correction(self, q_candidates, expected_msg=None, advance=True, is_var_correction=False, is_eof=False):
         if self._eof() or is_eof:
             tok = self.tokens[-1] if self.tokens else None
         else:
             tok = self.tokens[self.pos]
-
         j = self._get_current_terminal()
         jy = self._get_remaining_chain()
         L = self._build_L_list()
-
         if not is_eof and j and not self._is_derivable(j):
             self._skip_until_derivable()
             j = self._get_current_terminal()
-
         incomplete_cause = self._find_incomplete_cause()
         q = self._select_q(q_candidates, incomplete_cause)
-
         if q:
             if is_eof:
                 msg = f"Ошибка: ожидалась {expected_msg}."
@@ -212,12 +192,10 @@ class Parser:
                 msg = f"Ошибка: ожидалась {expected_msg}.'"
             else:
                 msg = f"Ошибка: ожидалась {expected_msg}."
-
             if tok:
                 self.errors.append(ScanError(ERROR_CODES["INVALID_STRUCTURE"], msg, tok.line, tok.column, tok.value))
             else:
                 self.errors.append(ScanError(ERROR_CODES["INVALID_STRUCTURE"], msg, 0, 0, ""))
-
             if is_eof:
                 pass
             elif is_var_correction:
