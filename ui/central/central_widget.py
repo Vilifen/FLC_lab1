@@ -247,37 +247,36 @@ class CentralWidget(QWidget):
         self.show_results_table(rows)
 
     def show_results_table(self, rows):
+        self.table.setRowCount(0)
         if self.output_mode == "errors":
             self.table.setColumnCount(3)
-            self.table.setHorizontalHeaderLabels(["Неверный фрагмент", "Местоположение", "Описание"])
+            self.table.setHorizontalHeaderLabels(["Лексема", "Местоположение", "Описание"])
 
             if not rows:
                 self.table.setRowCount(1)
-                self.table.setItem(0, 0, QTableWidgetItem(""))
-                self.table.setItem(0, 1, QTableWidgetItem(""))
                 self.table.setItem(0, 2, QTableWidgetItem("Ошибок нет"))
                 return
 
             self.table.setRowCount(len(rows))
             for i, r in enumerate(rows):
-                fragment = r.get("fragment", r.get("lexeme", ""))
-                location = r.get("location", "")
-                description = r.get("description", r.get("type", ""))
+                lexeme = str(r.get("lexeme", ""))
+                location = f"Лин {r.get('line', 0)}, Кол {r.get('col', 0)}"
+                description = r.get("msg", "")
 
-                self.table.setItem(i, 0, QTableWidgetItem(fragment))
+                self.table.setItem(i, 0, QTableWidgetItem(lexeme))
                 self.table.setItem(i, 1, QTableWidgetItem(location))
                 self.table.setItem(i, 2, QTableWidgetItem(description))
 
         else:
             self.table.setColumnCount(4)
-            self.table.setHorizontalHeaderLabels(["Условный код", "Тип лексемы", "Лексема", "Местоположение"])
+            self.table.setHorizontalHeaderLabels(["Код", "Тип", "Лексема", "Местоположение"])
             self.table.setRowCount(len(rows))
 
             for i, r in enumerate(rows):
                 code = str(r.get("code", ""))
                 type_ = r.get("type", "")
                 lexeme = r.get("lexeme", "")
-                location = r.get("location", "")
+                location = f"{r.get('line', 0)}:{r.get('col', 0)}"
 
                 self.table.setItem(i, 0, QTableWidgetItem(code))
                 self.table.setItem(i, 1, QTableWidgetItem(type_))

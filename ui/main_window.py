@@ -10,9 +10,15 @@ from ui.actions import ActionManager
 from ui.menus import MenuBuilder
 from ui.toolbar import ToolbarBuilder
 
-from L2.integration import run_scanner
-from L2.navigation import navigate_to_error
+from antlr.integration import run_antlr_analysis
 
+def navigate_to_error(editor, line, col):
+    cursor = editor.textCursor()
+    block = editor.document().findBlockByLineNumber(line - 1)
+    pos = block.position() + col
+    cursor.setPosition(pos)
+    editor.setTextCursor(cursor)
+    editor.setFocus()
 
 class MainWindow(QMainWindow):
     def __init__(self, controller):
@@ -200,17 +206,19 @@ class MainWindow(QMainWindow):
 
     def run_scanner_action(self):
         editor = self.central.editor
-        token_rows, error_rows = run_scanner(editor)
+        text = editor.toPlainText()
+
+        token_rows, error_rows = run_antlr_analysis(text)
         self.central.set_results(token_rows, error_rows)
 
-        self.error_status.showMessage(f"Количество ошибок: {len(error_rows)}")
+        self.error_status.showMessage(f"{self.labels['errors']}: {len(error_rows)}")
 
         def on_click(item):
             row = item.row()
             rows = (
-                self.central.token_rows
+                token_rows
                 if self.central.output_mode == "build"
-                else self.central.error_rows
+                else error_rows
             )
             if 0 <= row < len(rows):
                 navigate_to_error(editor, rows[row]["line"], rows[row]["col"])
