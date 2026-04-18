@@ -31,15 +31,16 @@ while ($counter < 5) {
 3) <LEFT_BRACE> -> '$' <ID_START>
 4) <ID_START> -> letter <ID>
 5) <ID> -> letter <ID> | digit <ID> | '_' <ID> | '<' <EXPRESSION> | '>' <EXPRESSION> | '==' <EXPRESSION> | '>=' <EXPRESSION> | '<=' <EXPRESSION> | '!=' <EXPRESSION>
-6)<EXPRESSION> -> digit <NUMBER> 
+6)<EXPRESSION> -> digit <NUMBER> || ‘$’ <NEW_ID_START>
 7)<NUMBER> -> digit <NUMBER> | '||' <LEFT_BRACE> | '&&' <LEFT_BRACE> | ')' <RIGHT_BRACE>
-8)<RIGHT_BRACE> -> '{' <LEFT_CURLY_BRACE>
-9)<LEFT_CURLY_BRACE> -> ' '$' <SYMBOL_ID_START>
-10)<SYMBOL_ID_START> -> letter <ID_IN>
-11)<ID_IN> -> letter <ID_IN> | digit <ID_IN> | '_' <ID_IN> | '++' <OPERATOR_CHANGE> | '--' <OPERATOR_CHANGE>
-12) <OPERATOR_CHANGE> -> ';' <SEMICOLON_IN>
-13) <SEMICOLON_IN> -> '}' <RIGHT_CURLY_BRACE> | '$' <SYMBOL_ID_START>
-14) <RIGHT_CURLY_BRACE> -> ';'  
+8)<NEW_ID_START> -> letter <NEW_ID> | digit <NEW_ID> | ‘_’ <NEW_ID> | '||' <LEFT_BRACE> | '&&' <LEFT_BRACE> | ')' <RIGHT_BRACE>
+9)<RIGHT_BRACE> -> '{' <LEFT_CURLY_BRACE>
+10)<LEFT_CURLY_BRACE> -> ' '$' <SYMBOL_ID_START>
+11)<SYMBOL_ID_START> -> letter <ID_IN>
+12)<ID_IN> -> letter <ID_IN> | digit <ID_IN> | '_' <ID_IN> | '++' <OPERATOR_CHANGE> | '--' <OPERATOR_CHANGE>
+13) <OPERATOR_CHANGE> -> ';' <SEMICOLON_IN>
+14) <SEMICOLON_IN> -> '}' <RIGHT_CURLY_BRACE> | '$' <SYMBOL_ID_START>
+15) <RIGHT_CURLY_BRACE> -> ';'  
 ```
 letter - любой символ латинского алфавита (A-Z a-z)
 digit -  любая цифра от 0 до 9

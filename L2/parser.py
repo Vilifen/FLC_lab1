@@ -97,7 +97,7 @@ class Parser:
         if self.stop_parsing:
             return
         ops = ["<", ">", "==", ">=", "<=", "!="]
-        if self._match_with_recovery(ops, [TokenType.NUMBER], "оператор сравнения"):
+        if self._match_with_recovery(ops, [TokenType.NUMBER, TokenType.IDENTIFIER], "оператор сравнения"):
             self.parse_expression()
         else:
             self.parse_expression()
@@ -105,12 +105,27 @@ class Parser:
     def parse_expression(self):
         if self.stop_parsing:
             return
-        if self._match_with_recovery([TokenType.NUMBER], ["||", "&&", ")", "{"], "число"):
-            self.parse_number_tail()
-        else:
-            self.parse_number_tail()
+        self._skip_ws()
+        if self._eof():
+            return
 
-    def parse_number_tail(self):
+        tok = self.tokens[self.pos]
+        if tok.type == TokenType.NUMBER:
+            self.pos += 1
+            self.consecutive_errors = 0
+            self.parse_tail()
+        elif tok.type == TokenType.IDENTIFIER and tok.value.startswith("$"):
+            self.pos += 1
+            self.consecutive_errors = 0
+            self.parse_tail()
+        else:
+            self._error("число или переменная '$id'")
+            while not self._eof() and self.tokens[self.pos].value not in ["||", "&&", ")", "{"]:
+                self.pos += 1
+                self._skip_ws()
+            self.parse_tail()
+
+    def parse_tail(self):
         if self.stop_parsing:
             return
         self._skip_ws()
@@ -131,7 +146,7 @@ class Parser:
                 self.pos += 1
                 self._skip_ws()
             if not self._eof() and self.tokens[self.pos].value in [")", "{"]:
-                self.parse_number_tail()
+                self.parse_tail()
 
     def parse_right_brace(self):
         if self.stop_parsing:
@@ -195,4 +210,5 @@ class Parser:
             self.pos += 1
 
     def _eof(self):
-        return self.pos >= len(self.tokens) or self.tokens[self.pos].type == TokenType.EOF
+        return self.pos >= len(self.tokens) or (
+                    self.pos < len(self.tokens) and self.tokens[self.pos].type == TokenType.EOF)
