@@ -22,11 +22,8 @@ class Parser:
             self.parse_start()
             self._skip_ws()
 
-        # ФИЛЬТРАЦИЯ ДУБЛЕЙ
-        # Собираем номера строк, где лексер УЖЕ нашел INVALID_CHAR
         lex_error_lines = {e.line for e in self.errors if e.code == ERROR_CODES["INVALID_CHAR"]}
 
-        # Оставляем только те ошибки парсера, которые не на этих строках
         self.errors = [
             e for e in self.errors
             if not (e.code == ERROR_CODES["INVALID_STRUCTURE"] and e.line in lex_error_lines)
@@ -35,7 +32,7 @@ class Parser:
         return self.errors
 
     def _error(self, msg):
-        if self.consecutive_errors > 0:
+        if self.consecutive_errors > 0 or self.stop_parsing:
             return
 
         if self._eof():
@@ -44,8 +41,8 @@ class Parser:
             tok = self.tokens[self.pos]
 
         if tok:
-            # Если текущий токен — UNKNOWN, лексер уже выдал ошибку, парсеру нет смысла орать
             if tok.type == TokenType.UNKNOWN:
+                self.consecutive_errors = 1
                 return
 
             self.errors.append(

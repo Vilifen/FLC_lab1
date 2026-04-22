@@ -98,10 +98,22 @@ class Scanner:
         start_line, start_col = self.line, self.col
         value = self._cur()
         self._advance()
+
+        content = ""
         while not self._eof() and not self._is_separator_or_space_or_op_start(self._cur()):
-            value += self._cur()
+            content += self._cur()
             self._advance()
-        self.tokens.append(Token(TokenType.IDENTIFIER, value, start_line, start_col))
+
+        full_value = value + content
+
+        if not content:
+            self._error("Отсутствует имя переменной после '$'", "INVALID_CHAR", full_value, start_line, start_col)
+            self.tokens.append(Token(TokenType.UNKNOWN, full_value, start_line, start_col))
+        elif not all(c.isalnum() or c == '_' for c in content):
+            self._error("Недопустимые символы в имени переменной", "INVALID_CHAR", full_value, start_line, start_col)
+            self.tokens.append(Token(TokenType.UNKNOWN, full_value, start_line, start_col))
+        else:
+            self.tokens.append(Token(TokenType.IDENTIFIER, full_value, start_line, start_col))
 
     def _consume_word(self):
         start_line, start_col = self.line, self.col
@@ -141,5 +153,4 @@ class Scanner:
             self._advance()
         if value:
             self._error("Недопустимая последовательность символов", "INVALID_CHAR", value, start_line, start_col)
-            # Добавляем UNKNOWN, чтобы парсер знал, что здесь "дыра"
             self.tokens.append(Token(TokenType.UNKNOWN, value, start_line, start_col))
