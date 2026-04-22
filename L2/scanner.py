@@ -96,9 +96,12 @@ class Scanner:
         value = self._cur()
         self._advance()
 
-        while not self._eof() and not self._is_separator_or_space_or_op_start(self._cur()):
+        while not self._eof() and (self._cur().isalnum() or self._cur() == "_"):
             value += self._cur()
             self._advance()
+
+        if value == "$":
+            self._error("Ожидалось имя переменной после '$'", "INVALID_CHAR", value, start_line, start_col)
 
         self.tokens.append(Token(TokenType.IDENTIFIER, value, start_line, start_col))
 
@@ -106,7 +109,7 @@ class Scanner:
         start_line, start_col = self.line, self.col
         value = ""
 
-        while not self._eof() and not self._is_separator_or_space_or_op_start(self._cur()):
+        while not self._eof() and (self._cur().isalnum() or self._cur() == "_"):
             value += self._cur()
             self._advance()
 
