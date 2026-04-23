@@ -3,6 +3,7 @@ from .token import Token
 from .scan_error import ScanError
 from .error_codes import ERROR_CODES
 
+
 class Scanner:
     KEYWORDS = {"while"}
     OPERATORS = {"++", "--", "<=", ">=", "==", "!=", "&&", "||", "<", ">", "_"}
@@ -146,7 +147,11 @@ class Scanner:
 
     def _consume_invalid(self):
         start_line, start_col = self.line, self.col
-        value = self._cur()
-        self._advance()
-        self._error("Недопустимый символ", "INVALID_CHAR", value, start_line, start_col)
-        self.tokens.append(Token(TokenType.UNKNOWN, value, start_line, start_col))
+        value = ""
+        while not self._eof() and not self._is_valid_char(self._cur()):
+            value += self._cur()
+            self._advance()
+
+        if value:
+            self._error("Недопустимая последовательность символов", "INVALID_CHAR", value, start_line, start_col)
+            self.tokens.append(Token(TokenType.UNKNOWN, value, start_line, start_col))

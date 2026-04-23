@@ -88,7 +88,8 @@ class Parser:
 
         tok = self.tokens[self.pos]
         if tok.value != "while":
-            self._error("ключевое слово 'while'")
+            if tok.type != TokenType.UNKNOWN:
+                self._error("ключевое слово 'while'")
             self.pos += 1
             return
 
