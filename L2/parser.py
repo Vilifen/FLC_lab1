@@ -15,10 +15,10 @@ class Parser:
         self.errors = scanner_errors[:] if scanner_errors else []
         self.stop_parsing = False
 
-        self._skip_ws()
         while not self._eof() and not self.stop_parsing:
-            self.parse_start()
             self._skip_ws()
+            if self._eof(): break
+            self.parse_start()
 
         lex_error_lines = {e.line for e in self.errors if e.code == ERROR_CODES["INVALID_CHAR"]}
         self.errors = [
@@ -75,8 +75,9 @@ class Parser:
         self._skip_ws()
         while not self._eof():
             tok = self.tokens[self.pos]
-            if tok.value in ["(", ")"] and tok.value not in allowed_brackets:
-                self._error(f"недопустимый символ '{tok.value}'")
+            if tok.value in ["(", ")", "{", "}", ";"] and tok.value not in allowed_brackets:
+                if tok.type != TokenType.UNKNOWN:
+                    self._error(f"недопустимый символ '{tok.value}'")
                 self.pos += 1
                 self._skip_ws()
             else:
@@ -84,15 +85,14 @@ class Parser:
 
     def parse_start(self):
         if self._eof(): return
-        self._skip_extra_brackets(allowed_brackets=["while"])
 
         tok = self.tokens[self.pos]
         if tok.value != "while":
             self._error("ключевое слово 'while'")
-            if tok.value not in ["(", "{", "$"]:
-                self.pos += 1
-        else:
             self.pos += 1
+            return
+
+        self.pos += 1
         self.parse_keyword_while()
 
     def parse_keyword_while(self):
