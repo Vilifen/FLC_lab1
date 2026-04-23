@@ -20,7 +20,6 @@ class Parser:
             self.parse_start()
             self._skip_ws()
 
-        # Фильтруем дубли синтаксиса на тех же позициях, где были лексические ошибки
         lex_error_lines = {e.line for e in self.errors if e.code == ERROR_CODES["INVALID_CHAR"]}
         self.errors = [
             e for e in self.errors
@@ -34,17 +33,16 @@ class Parser:
             return
 
         if self._eof():
-            # Защита от дублирования ошибок на одной и той же позиции в конце файла
-            last_col = (self.tokens[-1].column + len(self.tokens[-1].value)) if self.tokens else 1
-            if self.errors and self.errors[-1].column == last_col:
-                return
-
-            line = self.tokens[-1].line if self.tokens else 1
-            col = last_col
+            tok = self.tokens[-1] if len(self.tokens) > 0 else None
+            line = tok.line if tok else 1
+            col = (tok.column + len(tok.value)) if tok else 1
             val = ""
         else:
             tok = self.tokens[self.pos]
             line, col, val = tok.line, tok.column, tok.value
+
+        if tok and tok.type == TokenType.UNKNOWN:
+            return
 
         self.errors.append(ScanError(ERROR_CODES["INVALID_STRUCTURE"], f"Ошибка: {msg}", line, col, val))
 
@@ -67,7 +65,6 @@ class Parser:
         tok = self.tokens[self.pos]
         if tok.value != "while":
             self._error("ключевое слово 'while'")
-            # Если это не скобка или переменная, просто скипаем мусор
             if tok.value not in ["(", "{", "$"]:
                 self.pos += 1
         else:
@@ -75,11 +72,8 @@ class Parser:
         self.parse_keyword_while()
 
     def parse_keyword_while(self):
-        if self._match_with_recovery(["("], "'('"):
-            self.parse_left_brace()
-        else:
-            # Даже если '(' нет, пытаемся парсить дальше, чтобы найти другие ошибки
-            self.parse_left_brace()
+        self._match_with_recovery(["("], "'('")
+        self.parse_left_brace()
 
     def parse_left_brace(self):
         self._skip_ws()
@@ -92,15 +86,12 @@ class Parser:
                 if tok.type == TokenType.IDENTIFIER: self.pos += 1
         else:
             self._error("переменная вида '$id'")
-
         self.parse_expression_operator()
 
     def parse_expression_operator(self):
         ops = ["<", ">", "==", ">=", "<=", "!="]
-        if self._match_with_recovery(ops, "оператор сравнения"):
-            self.parse_expression()
-        else:
-            self.parse_expression()
+        self._match_with_recovery(ops, "оператор сравнения")
+        self.parse_expression()
 
     def parse_expression(self):
         self._skip_ws()
@@ -143,12 +134,7 @@ class Parser:
             self.parse_left_curly_brace()
 
     def parse_left_curly_brace(self):
-        self._skip_ws()
-        # Если файл кончился сразу после '{'
-        if self._eof():
-            self._error("инструкция ($id++)")
-            return
-
+        # Цикл обработки инструкций внутри {}
         while not self._eof():
             self._skip_ws()
             if self._eof(): break
@@ -162,13 +148,14 @@ class Parser:
             if tok.type == TokenType.IDENTIFIER and tok.value.startswith("$"):
                 self.pos += 1
                 self.parse_id_in_operator()
-            elif tok.value in ["++", "--"]:
-                self._error("переменная вида '$id'")
-                self.parse_id_in_operator()
             else:
                 if tok.value == "while": return
                 self._error("инструкция ($id++)")
                 self.pos += 1
+
+        # Если дошли сюда — файл кончился, а '}' не найдена
+        self._error("'}'")
+        self.parse_final_semicolon()
 
     def parse_id_in_operator(self):
         self._match_with_recovery(["++", "--"], "++ или --")
