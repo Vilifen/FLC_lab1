@@ -6,7 +6,7 @@ from .error_codes import ERROR_CODES
 class Scanner:
     KEYWORDS = {"while"}
     OPERATORS = {"++", "--", "<=", ">=", "==", "!=", "&&", "||", "<", ">", "_"}
-    SEPARATORS = {"(", ")", "{", "}", ";"}
+    SEPARATORS = {"(", ")", "{", "}"}  # Убрали ';' отсюда
 
     def __init__(self):
         self.text = ""
@@ -30,6 +30,9 @@ class Scanner:
                 self._advance()
             elif ch == "$":
                 self._consume_identifier()
+            elif ch == ";":  # Специфичная обработка для точки с запятой
+                self._add(TokenType.SEPARATOR, ";")
+                self._advance()
             elif ch.isalpha() or ch == "_":
                 self._consume_word()
             elif ch.isdigit():
@@ -45,7 +48,7 @@ class Scanner:
                 while self.pos < len(self.text):
                     curr = self.text[self.pos]
                     if (curr.isspace() or curr == "$" or curr.isalnum() or
-                        curr in self.SEPARATORS or self._starts_operator()):
+                        curr in self.SEPARATORS or curr == ";" or self._starts_operator()):
                         break
                     val += curr
                     self._advance()
