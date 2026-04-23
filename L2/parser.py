@@ -33,6 +33,8 @@ class Parser:
             return
 
         if self._eof():
+            if len(self.errors) > 0:
+                return
             tok = self.tokens[-1] if len(self.tokens) > 0 else None
         else:
             tok = self.tokens[self.pos]
@@ -47,7 +49,8 @@ class Parser:
     def _match_with_recovery(self, expected_vals, sync_vals, error_msg):
         self._skip_ws()
         if self._eof():
-            self._error(f"Неожиданный конец файла. Ожидалось: {error_msg}")
+            if len(self.errors) == 0:
+                self._error(f"Неожиданный конец файла. Ожидалось: {error_msg}")
             return False
 
         tok = self.tokens[self.pos]
@@ -72,11 +75,13 @@ class Parser:
         self.parse_keyword_while()
 
     def parse_keyword_while(self):
+        if self._eof() and len(self.errors) > 0: return
         if not self._match_with_recovery(["("], [], "'('"):
             pass
         self.parse_left_brace()
 
     def parse_left_brace(self):
+        if self._eof() and len(self.errors) > 0: return
         self._skip_ws()
         if not self._eof():
             tok = self.tokens[self.pos]
@@ -90,12 +95,14 @@ class Parser:
         self.parse_expression_operator()
 
     def parse_expression_operator(self):
+        if self._eof() and len(self.errors) > 0: return
         ops = ["<", ">", "==", ">=", "<=", "!="]
         if not self._match_with_recovery(ops, [], "оператор сравнения"):
             pass
         self.parse_expression()
 
     def parse_expression(self):
+        if self._eof() and len(self.errors) > 0: return
         self._skip_ws()
         if self._eof(): return
         tok = self.tokens[self.pos]
@@ -108,6 +115,7 @@ class Parser:
         self.parse_tail()
 
     def parse_tail(self):
+        if self._eof() and len(self.errors) > 0: return
         self._skip_ws()
         if self._eof(): return
         tok = self.tokens[self.pos]
@@ -124,6 +132,7 @@ class Parser:
             self.parse_right_brace()
 
     def parse_right_brace(self):
+        if self._eof() and len(self.errors) > 0: return
         if not self._match_with_recovery(["{"], [], "'{'"):
             pass
         self.parse_left_curly_brace()
@@ -151,14 +160,17 @@ class Parser:
                 self.pos += 1
 
     def parse_id_in_operator(self):
+        if self._eof() and len(self.errors) > 0: return
         if not self._match_with_recovery(["++", "--"], [], "++ или --"):
             pass
         self.parse_operator_change()
 
     def parse_operator_change(self):
+        if self._eof() and len(self.errors) > 0: return
         self._match_with_recovery([";"], [], "';'")
 
     def parse_final_semicolon(self):
+        if self._eof() and len(self.errors) > 0: return
         self._match_with_recovery([";"], [], "';'")
 
     def _skip_ws(self):
