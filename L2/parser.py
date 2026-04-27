@@ -17,8 +17,8 @@ class Parser:
         return self.errors
 
     def _error(self, msg, tok):
-        if self.errors and self.errors[-1].line == tok.line and self.errors[-1].column == tok.column:
-            return
+        #if self.errors and self.errors[-1].line == tok.line and self.errors[-1].column == tok.column:
+         #   return
         self.errors.append(ScanError(
             ERROR_CODES["INVALID_STRUCTURE"],
             f"Ошибка: {msg}",
@@ -61,8 +61,37 @@ class Parser:
         return False
 
     def parse_start(self):
+        tmp_pos = self.pos
+        flag = True
         if self._sync_expect("while", "Ожидалось ключевое слово while", "("):
             self.parse_keyword_while()
+            flag = False
+        self.pos = tmp_pos
+
+        if flag and self._sync_expect("(", "Ожидалась '('", TokenType.IDENTIFIER):
+            self.parse_left_brace()
+            flag = False
+        self.pos = tmp_pos
+
+        if flag and self._sync_expect(TokenType.IDENTIFIER, "Ожидался идентификатор", ["<", ">", "==", "!=", "<=", ">="]):
+            self.parse_identifier()
+            flag = False
+        self.pos = tmp_pos
+
+        if flag and self._sync_expect(["<", ">", "==", "!=", "<=", ">="], "Ожидался оператор сравнения", [TokenType.NUMBER, TokenType.IDENTIFIER]):
+            self.parse_expression()
+            flag = False
+        self.pos = tmp_pos
+
+        if flag and self._sync_expect([TokenType.NUMBER, TokenType.IDENTIFIER], "Ожидалось число или идентификатор", ["&&", "||", ')']):
+            self.parse_right_operand()
+            flag = False
+        self.pos = tmp_pos
+
+
+
+
+
 
     def parse_keyword_while(self):
         if self._sync_expect("(", "Ожидалась '('", TokenType.IDENTIFIER):
@@ -122,13 +151,8 @@ class Parser:
             self.pos+=1;
             self.parse_right_curly_brace()
         else:
-            tmp_pos = self.pos
-            while tok.value != ';' and not self._eof():
-                tok = self.tokens[self.pos]
-                self.pos+=1;
-            if (tok.value == ";" or self._eof()):
-                self._error("Ожидалась '}'", self.tokens[tmp_pos])
-            self.parse_right_curly_brace()
+            if self._sync_expect("}", "Ожидалась '}'", ";"):
+                self.parse_right_curly_brace()
 
     def parse_right_curly_brace(self):
         if self._sync_expect(";", "Ожидалась ';'", ";"):
