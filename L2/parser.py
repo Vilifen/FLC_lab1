@@ -12,10 +12,8 @@ class Parser:
     def parse(self, scanner_errors=None):
         self.pos = 0
         self.errors = []
-        while not self._eof():
-            self._skip_noise()
-            if self._eof(): break
-            self.parse_while_stmt()
+        self.tokens = [t for t in self.tokens if t.type != TokenType.WHITESPACE]
+        self.parse_start()
         return self.errors
 
     def _error(self, msg, tok):
@@ -27,102 +25,115 @@ class Parser:
             tok.line, tok.column, tok.value
         ))
 
-    def _skip_noise(self):
-        while not self._eof() and self.tokens[self.pos].type == TokenType.WHITESPACE:
-            self.pos += 1
+    def _sync_expect(self, condition, error_msg, next_condition):
+        tok = self.tokens[self.pos]
 
-    def _sync_expect(self, condition, error_msg):
-        self._skip_noise()
-        first_error_reported = False
+        is_match = False
+        if callable(condition):
+            is_match = condition(tok)
+        elif isinstance(condition, list):
+            is_match = tok.value in condition or tok.type in condition
+        else:
+            is_match = tok.value == condition or tok.type == condition
+
+        if is_match:
+            self.pos += 1
+            return True
+
+        self._error(error_msg, tok)
 
         while not self._eof():
             tok = self.tokens[self.pos]
 
             is_match = False
-            if callable(condition):
-                is_match = condition(tok)
-            elif isinstance(condition, list):
-                is_match = tok.value in condition
+            if callable(next_condition):
+                is_match = next_condition(tok)
+            elif isinstance(next_condition, list):
+                is_match = tok.value in next_condition or tok.type in next_condition
             else:
-                is_match = tok.value == condition or tok.type == condition
+                is_match = tok.value == next_condition or tok.type == next_condition
 
             if is_match:
-                self.pos += 1
                 return True
 
-            if not first_error_reported:
-                if tok.type == TokenType.UNKNOWN or tok.value == ";":
-                    self._error("недопустимый символ", tok)
-                else:
-                    self._error(error_msg, tok)
-                first_error_reported = True
-
             self.pos += 1
-            self._skip_noise()
 
         return False
 
-    def parse_while_stmt(self):
-        self._sync_expect("while", "ключевое слово 'while'")
-        self._sync_expect("(", "'('")
+    def parse_start(self):
+        if self._sync_expect("while", "Ожидалось ключевое слово while", "("):
+            self.parse_keyword_while()
 
-        self._skip_noise()
-        if not self._eof():
-            tok = self.tokens[self.pos]
-            if tok.type == TokenType.IDENTIFIER:
-                if not tok.value.startswith("$") or tok.value == "$":
-                    self._error("переменная вида $i", tok)
-                    self.pos += 1
-                else:
-                    self.pos += 1
-            else:
-                self._error("переменная вида $i", tok)
-                if tok.value not in ["<", ">", "==", "!=", "<=", ">="]:
-                    self.pos += 1
+    def parse_keyword_while(self):
+        if self._sync_expect("(", "Ожидалась '('", TokenType.IDENTIFIER):
+            self.parse_left_brace()
 
-        self._sync_expect(["<", ">", "==", "!=", "<=", ">="], "оператор сравнения")
+    def parse_left_brace(self):
+        if self._sync_expect(TokenType.IDENTIFIER, "Ожидался идентификатор", ["<", ">", "==", "!=", "<=", ">="]):
+            self.parse_identifier()
 
-        self._skip_noise()
-        if not self._eof():
-            tok = self.tokens[self.pos]
-            if tok.type in [TokenType.NUMBER, TokenType.IDENTIFIER]:
-                self.pos += 1
-            else:
-                self._error("число или переменная", tok)
-                if tok.value != ")":
-                    self.pos += 1
+    def parse_identifier(self):
+        if self._sync_expect(["<", ">", "==", "!=", "<=", ">="], "Ожидался оператор сравнения", [TokenType.NUMBER, TokenType.IDENTIFIER]):
+            self.parse_expression()
 
-        self._sync_expect(")", "')'")
-        self._sync_expect("{", "'{'")
+    def parse_expression(self):
+        if self._sync_expect([TokenType.NUMBER, TokenType.IDENTIFIER], "Ожидалось число или идентификатор", ["&&", "||", ')']):
+            self.parse_right_operand()
 
-        while not self._eof():
-            self._skip_noise()
-            if self._eof() or self.tokens[self.pos].value == "}":
-                break
+    def parse_right_operand(self):
+        tok = self.tokens[self.pos]
+        if tok.value == "&&" or tok.value == "||":
+            self.pos+=1;
+            self.parse_left_brace()
+        elif tok.value == ')':
+            self.pos+=1;
+            self.parse_right_brace()
+        else:
+            tmp_pos = self.pos
+            while tok.value != '{' and not self._eof():
+                tok = self.tokens[self.pos]
+                self.pos+=1;
+            if (tok.value == "{" or self._eof()):
+                self._error("Ожидалась ')'", self.tokens[tmp_pos])
+            self.parse_right_brace()
 
-            tok = self.tokens[self.pos]
-            if tok.type == TokenType.IDENTIFIER:
-                self.pos += 1
-                self._skip_noise()
-                next_tok = self.tokens[self.pos]
-                if not self._eof() and next_tok.value in ["++", "--"]:
-                    self.pos += 1
-                else:
-                    self._error("отсутствие инструкции ++ или --", next_tok)
-                    if not self._eof() and next_tok.value != ";" and next_tok.type != TokenType.SEPARATOR:
-                        self.pos += 1
-                self._sync_expect(";", "';'")
-            elif tok.value in ["++", "--"]:
-                self._error("отсутствие переменной вида $i", tok)
-                self.pos += 1
-                self._sync_expect(";", "';'")
-            else:
-                self._error(
-                    "недопустимый символ" if tok.type == TokenType.UNKNOWN or tok.value == ";" else "инструкция", tok)
-                self.pos += 1
+    def parse_right_brace(self):
+        if self._sync_expect("{", "Ожидалась '{'", TokenType.IDENTIFIER):
+            self.parse_left_curly_brace()
 
-        self._sync_expect("}", "'}'")
-        self._sync_expect(";", "';'")
+    def parse_left_curly_brace(self):
+        if self._sync_expect(TokenType.IDENTIFIER, "Ожидался идентификатор", ["++", "--"]):
+            self.parse_id_in()
+
+    def parse_id_in(self):
+        if self._sync_expect(["++", "--"], "Ожидался оператор изменения", ";"):
+            self.parse_operator_change()
+
+    def parse_operator_change(self):
+        if self._sync_expect(";", "Ожидалась ';'", [TokenType.IDENTIFIER, "}"]):
+            self.parse_semicolon_in()
+
+    def parse_semicolon_in(self):
+        tok = self.tokens[self.pos]
+        if tok.type == TokenType.IDENTIFIER:
+            self.pos+=1;
+            self.parse_id_in()
+        elif tok.value == '}':
+            self.pos+=1;
+            self.parse_right_curly_brace()
+        else:
+            tmp_pos = self.pos
+            while tok.value != ';' and not self._eof():
+                tok = self.tokens[self.pos]
+                self.pos+=1;
+            if (tok.value == ";" or self._eof()):
+                self._error("Ожидалась '}'", self.tokens[tmp_pos])
+            self.parse_right_curly_brace()
+
+    def parse_right_curly_brace(self):
+        if self._sync_expect(";", "Ожидалась ';'", ";"):
+            if not self._eof():
+                self.parse_start()
 
     def _eof(self):
         return self.pos >= len(self.tokens) or self.tokens[self.pos].type == TokenType.EOF

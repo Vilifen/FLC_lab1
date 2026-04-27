@@ -41,7 +41,6 @@ class Scanner:
             elif self._starts_operator():
                 self._consume_operator()
             else:
-                # Склеиваем мусор в один блок
                 start_line, start_col = self.line, self.col
                 val = ""
                 while self.pos < len(self.text):
@@ -83,7 +82,7 @@ class Scanner:
         while self.pos < len(self.text) and (self.text[self.pos].isalnum() or self.text[self.pos] == '_'):
             val += self.text[self.pos]
             self._advance()
-        ttype = TokenType.KEYWORD if val in self.KEYWORDS else TokenType.IDENTIFIER
+        ttype = TokenType.KEYWORD if val in self.KEYWORDS else TokenType.UNKNOWN
         self.tokens.append(Token(ttype, val, start_line, start_col))
 
     def _consume_number(self):
