@@ -16,7 +16,9 @@ class CentralWidget(QWidget):
         self.current_index = -1
         self.untitled_counter = 1
         self.font_size = 14
-        self.output_mode = "build"
+
+        # Атрибуты сохранены для совместимости с MainWindow
+        self.output_mode = "errors"
         self.token_rows = []
         self.error_rows = []
 
@@ -70,32 +72,13 @@ class CentralWidget(QWidget):
         results_layout.setSpacing(0)
         self.results_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-        self.output_tabs = QWidget()
-        self.output_tabs_layout = QHBoxLayout(self.output_tabs)
-        self.output_tabs_layout.setContentsMargins(4, 0, 4, 0)
-        self.output_tabs_layout.setSpacing(2)
-
-        self.build_btn = QPushButton("Результаты")
-        self.build_btn.setCheckable(True)
-        self.build_btn.setFixedHeight(32)
-        self.build_btn.clicked.connect(lambda: self.switch_output("build"))
-
-        self.err_btn = QPushButton("Ошибки")
-        self.err_btn.setCheckable(True)
-        self.err_btn.setFixedHeight(32)
-        self.err_btn.clicked.connect(lambda: self.switch_output("errors"))
-
-        self.output_tabs_layout.addWidget(self.build_btn)
-        self.output_tabs_layout.addWidget(self.err_btn)
-
         self.table = QTableWidget()
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["Условный код", "Тип лексемы", "Лексема", "Местоположение"])
+        self.table.setColumnCount(3)
+        self.table.setHorizontalHeaderLabels(["Неверный фрагмент", "Местоположение", "Описание"])
         self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
-        results_layout.addWidget(self.output_tabs)
         results_layout.addWidget(self.table)
 
         self.apply_font_size()
@@ -155,7 +138,7 @@ class CentralWidget(QWidget):
         self.current_index = index
         self._load_tab()
         self._update_status()
-        self.switch_output(self.output_mode)
+        self.show_errors()
 
     def _tab_mouse_press(self, event, index, button):
         if event.pos().x() > button.width() - 18:
@@ -187,7 +170,7 @@ class CentralWidget(QWidget):
 
         self.close_tab(index)
         self._update_status()
-        self.switch_output(self.output_mode)
+        self.show_errors()
 
     def close_tab(self, index):
         if len(self.tabs) == 1:
@@ -212,7 +195,7 @@ class CentralWidget(QWidget):
         self.current_index = max(0, index - 1)
         self._load_tab()
         self._update_status()
-        self.switch_output(self.output_mode)
+        self.show_errors()
 
     def switch_tab(self, index):
         if index == self.current_index:
@@ -226,7 +209,7 @@ class CentralWidget(QWidget):
         self.current_index = index
         self._load_tab()
         self._update_status()
-        self.switch_output(self.output_mode)
+        self.show_errors()
 
     def _load_tab(self):
         data = self.tabs[self.current_index]
@@ -237,52 +220,28 @@ class CentralWidget(QWidget):
     def set_results(self, token_rows, error_rows):
         self.token_rows = token_rows
         self.error_rows = error_rows
-        self.switch_output(self.output_mode)
+        self.show_errors()
 
-    def switch_output(self, mode):
-        self.output_mode = mode
-        self.build_btn.setChecked(mode == "build")
-        self.err_btn.setChecked(mode == "errors")
-        rows = self.token_rows if mode == "build" else self.error_rows
-        self.show_results_table(rows)
+    def show_errors(self):
+        rows = self.error_rows
+        self.table.setRowCount(0)
 
-    def show_results_table(self, rows):
-        if self.output_mode == "errors":
-            self.table.setColumnCount(3)
-            self.table.setHorizontalHeaderLabels(["Неверный фрагмент", "Местоположение", "Описание"])
+        if not rows:
+            self.table.setRowCount(1)
+            self.table.setItem(0, 0, QTableWidgetItem(""))
+            self.table.setItem(0, 1, QTableWidgetItem(""))
+            self.table.setItem(0, 2, QTableWidgetItem("Ошибок нет"))
+            return
 
-            if not rows:
-                self.table.setRowCount(1)
-                self.table.setItem(0, 0, QTableWidgetItem(""))
-                self.table.setItem(0, 1, QTableWidgetItem(""))
-                self.table.setItem(0, 2, QTableWidgetItem("Ошибок нет"))
-                return
+        self.table.setRowCount(len(rows))
+        for i, r in enumerate(rows):
+            fragment = r.get("fragment", r.get("lexeme", ""))
+            location = r.get("location", "")
+            description = r.get("description", r.get("type", ""))
 
-            self.table.setRowCount(len(rows))
-            for i, r in enumerate(rows):
-                fragment = r.get("fragment", r.get("lexeme", ""))
-                location = r.get("location", "")
-                description = r.get("description", r.get("type", ""))
-
-                self.table.setItem(i, 0, QTableWidgetItem(fragment))
-                self.table.setItem(i, 1, QTableWidgetItem(location))
-                self.table.setItem(i, 2, QTableWidgetItem(description))
-
-        else:
-            self.table.setColumnCount(4)
-            self.table.setHorizontalHeaderLabels(["Условный код", "Тип лексемы", "Лексема", "Местоположение"])
-            self.table.setRowCount(len(rows))
-
-            for i, r in enumerate(rows):
-                code = str(r.get("code", ""))
-                type_ = r.get("type", "")
-                lexeme = r.get("lexeme", "")
-                location = r.get("location", "")
-
-                self.table.setItem(i, 0, QTableWidgetItem(code))
-                self.table.setItem(i, 1, QTableWidgetItem(type_))
-                self.table.setItem(i, 2, QTableWidgetItem(lexeme))
-                self.table.setItem(i, 3, QTableWidgetItem(location))
+            self.table.setItem(i, 0, QTableWidgetItem(fragment))
+            self.table.setItem(i, 1, QTableWidgetItem(location))
+            self.table.setItem(i, 2, QTableWidgetItem(description))
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():

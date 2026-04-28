@@ -21,7 +21,7 @@ class Parser:
          #   return
         self.errors.append(ScanError(
             ERROR_CODES["INVALID_STRUCTURE"],
-            f"Ошибка: {msg}",
+            f"{msg}",
             tok.line, tok.column, tok.value
         ))
 
