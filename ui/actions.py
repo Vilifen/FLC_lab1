@@ -3,10 +3,12 @@ import sys
 from PyQt6.QtGui import QAction, QIcon, QKeySequence
 from PyQt6.QtWidgets import QMessageBox
 
+
 def get_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
+
 
 class ActionManager:
     def __init__(self, window, controller):
@@ -143,20 +145,25 @@ class ActionManager:
         self.save.triggered.connect(lambda: self.ctrl.file_save(self.win))
         self.save_as.triggered.connect(lambda: self.ctrl.file_save_as(self.win))
         self.exit.triggered.connect(self.win.close)
-        self.undo.triggered.connect(lambda: self.win.get_editor().undo())
-        self.redo.triggered.connect(lambda: self.win.get_editor().redo())
-        self.copy.triggered.connect(lambda: self.win.get_editor().copy())
-        self.cut.triggered.connect(lambda: self.win.get_editor().cut())
-        self.paste.triggered.connect(lambda: self.win.get_editor().paste())
-        self.delete.triggered.connect(lambda: self.win.get_editor().textCursor().removeSelectedText())
-        self.select_all.triggered.connect(lambda: self.win.get_editor().selectAll())
-        self.menu_undo.triggered.connect(lambda: self.win.get_editor().undo())
-        self.menu_redo.triggered.connect(lambda: self.win.get_editor().redo())
-        self.menu_cut.triggered.connect(lambda: self.win.get_editor().cut())
-        self.menu_copy.triggered.connect(lambda: self.win.get_editor().copy())
-        self.menu_paste.triggered.connect(lambda: self.win.get_editor().paste())
-        self.menu_delete.triggered.connect(lambda: self.win.get_editor().textCursor().removeSelectedText())
-        self.menu_select_all.triggered.connect(lambda: self.win.get_editor().selectAll())
+
+        def get_ed(): return self.win.get_editor()
+
+        self.undo.triggered.connect(lambda: get_ed().undo() if get_ed() else None)
+        self.redo.triggered.connect(lambda: get_ed().redo() if get_ed() else None)
+        self.copy.triggered.connect(lambda: get_ed().copy() if get_ed() else None)
+        self.cut.triggered.connect(lambda: get_ed().cut() if get_ed() else None)
+        self.paste.triggered.connect(lambda: get_ed().paste() if get_ed() else None)
+        self.delete.triggered.connect(lambda: get_ed().textCursor().removeSelectedText() if get_ed() else None)
+        self.select_all.triggered.connect(lambda: get_ed().selectAll() if get_ed() else None)
+
+        self.menu_undo.triggered.connect(lambda: get_ed().undo() if get_ed() else None)
+        self.menu_redo.triggered.connect(lambda: get_ed().redo() if get_ed() else None)
+        self.menu_cut.triggered.connect(lambda: get_ed().cut() if get_ed() else None)
+        self.menu_copy.triggered.connect(lambda: get_ed().copy() if get_ed() else None)
+        self.menu_paste.triggered.connect(lambda: get_ed().paste() if get_ed() else None)
+        self.menu_delete.triggered.connect(lambda: get_ed().textCursor().removeSelectedText() if get_ed() else None)
+        self.menu_select_all.triggered.connect(lambda: get_ed().selectAll() if get_ed() else None)
+
         self.menu_text_task.triggered.connect(self.win.show_problem_statement)
         self.menu_text_grammar.triggered.connect(self.win.show_grammar)
         self.menu_text_class.triggered.connect(self.win.show_grammar_class)
@@ -164,20 +171,20 @@ class ActionManager:
         self.menu_text_example.triggered.connect(self.win.show_test_example)
         self.menu_text_literature.triggered.connect(self.win.show_references)
         self.menu_text_source.triggered.connect(self.win.show_source_code)
+
         self.menu_run.triggered.connect(self.win.run_scanner_action)
         self.run.triggered.connect(self.win.run_scanner_action)
         self.menu_antlr.triggered.connect(self.win.run_antlr_action)
         self.antlr.triggered.connect(self.win.run_antlr_action)
+
         self.menu_help.triggered.connect(self.win.show_help)
         self.help.triggered.connect(self.win.show_help)
         self.menu_about.triggered.connect(lambda: self.ctrl.about(self.win, self.win.get_output()))
         self.about.triggered.connect(lambda: self.ctrl.about(self.win, self.win.get_output()))
+
         self.lang_ru.triggered.connect(lambda: self.win.set_language("ru"))
         self.lang_en.triggered.connect(lambda: self.win.set_language("en"))
         self.select_line.triggered.connect(self._select_current_line)
-
-    def _info(self, text):
-        QMessageBox.information(self.win, self.win.labels["info_title"], text)
 
     def _select_current_line(self):
         editor = self.win.get_editor()

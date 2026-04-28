@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout, QTextBrowser, QWidget, QSplitter
 )
 from PyQt6.QtCore import QUrl, Qt, QFile, QTextStream, QIODevice, QStringConverter
+from PyQt6.QtGui import QFont
 
 from ui.central.central_widget import CentralWidget
 from ui.actions import ActionManager
@@ -102,47 +103,18 @@ class MainWindow(QMainWindow):
         self.central.editor.textChanged.connect(self.update_status_bar)
 
         self.setStyleSheet("""
-            QMainWindow, QWidget#main_container {
-                background-color: white;
-            }
-            QMenuBar {
-                background-color: white;
-                color: black;
-                border-bottom: 1px solid #dcdcdc;
-            }
-            QMenuBar::item:selected {
-                background-color: #e0e0e0;
-            }
-            QMenu {
-                background-color: white;
-                color: black;
-                border: 1px solid #dcdcdc;
-            }
-            QMenu::item:selected {
-                background-color: #0078d7;
-                color: white;
-            }
-            QStatusBar {
-                background-color: white;
-                color: black;
-                border-top: 1px solid #dcdcdc;
-            }
-            QStatusBar::item {
-                border: none;
-            }
-            QSplitter::handle {
-                background-color: #f0f0f0;
-            }
+            QMainWindow, QWidget#main_container { background-color: white; }
+            QMenuBar { background-color: white; color: black; border-bottom: 1px solid #dcdcdc; }
+            QMenuBar::item:selected { background-color: #e0e0e0; }
+            QMenu { background-color: white; color: black; border: 1px solid #dcdcdc; }
+            QMenu::item:selected { background-color: #0078d7; color: white; }
+            QStatusBar { background-color: white; color: black; border-top: 1px solid #dcdcdc; }
+            QSplitter::handle { background-color: #f0f0f0; }
         """)
 
     def set_language(self, lang):
-        if lang == "en":
-            self.labels = self.labels_en
-            self.language = "en"
-        else:
-            self.labels = self.labels_ru
-            self.language = "ru"
-
+        self.labels = self.labels_en if lang == "en" else self.labels_ru
+        self.language = lang
         self.actions.update_texts()
         self.menu_builder.update_menu_titles()
         if self.font_menu:
@@ -151,35 +123,23 @@ class MainWindow(QMainWindow):
         self.update_status_bar()
 
     def update_ui_language(self):
-        self.actions.new.setText(self.labels["new"])
-        self.actions.open.setText(self.labels["open"])
-        self.actions.save.setText(self.labels["save"])
-        self.actions.save_as.setText(self.labels["save_as"])
-        self.actions.exit.setText(self.labels["exit"])
-        self.actions.undo.setText(self.labels["undo"])
-        self.actions.redo.setText(self.labels["redo"])
-        self.actions.cut.setText(self.labels["cut"])
-        self.actions.copy.setText(self.labels["copy"])
-        self.actions.paste.setText(self.labels["paste"])
-        self.actions.delete.setText(self.labels["delete"])
-        self.actions.select_all.setText(self.labels["select_all"])
-        self.actions.run.setText(self.labels["run"])
-        self.actions.help.setText(self.labels["help"])
-        self.actions.about.setText(self.labels["about"])
+        if hasattr(self.central, 'build_btn'): self.central.build_btn.setText(self.labels["build"])
+        if hasattr(self.central, 'err_btn'): self.central.err_btn.setText(self.labels["errors"])
+        headers = ["Code", "Type", "Lexeme", "Location"] if self.language == "en" else ["Код", "Тип", "Лексема", "Местоположение"]
+        self.central.table.setHorizontalHeaderLabels(headers)
 
-        self.central.build_btn.setText(self.labels["build"])
-        self.central.err_btn.setText(self.labels["errors"])
-
-        if self.language == "en":
-            self.central.table.setHorizontalHeaderLabels(["Code", "Type", "Lexeme", "Location"])
-        else:
-            self.central.table.setHorizontalHeaderLabels(["Код", "Тип", "Лексема", "Местоположение"])
+    def set_font_size(self, size):
+        editor = self.get_editor()
+        if editor:
+            font = editor.font()
+            font.setPointSize(size)
+            editor.setFont(font)
 
     def run_scanner_action(self):
         editor = self.central.editor
         token_rows, error_rows = run_scanner(editor)
         self.central.set_results(token_rows, error_rows)
-        self.error_status.showMessage(f"Количество ошибок: {len(error_rows)}")
+        self.error_status.showMessage(f"Ошибок: {len(error_rows)}")
         self._connect_table_navigation(editor)
 
     def run_antlr_action(self):
@@ -187,7 +147,7 @@ class MainWindow(QMainWindow):
         text = editor.toPlainText()
         token_rows, all_errors = execute_antlr_analysis(text)
         self.central.set_results(token_rows, all_errors)
-        self.error_status.showMessage(f"Всего ошибок ANTLR: {len(all_errors)}")
+        self.error_status.showMessage(f"Ошибок ANTLR: {len(all_errors)}")
         self._connect_table_navigation(editor)
 
     def _connect_table_navigation(self, editor):
@@ -196,32 +156,18 @@ class MainWindow(QMainWindow):
             rows = self.central.token_rows if self.central.output_mode == "build" else self.central.error_rows
             if 0 <= row < len(rows):
                 navigate_to_error(editor, rows[row]["line"], rows[row]["col"])
-
         try:
             self.central.table.itemClicked.disconnect()
         except:
             pass
         self.central.table.itemClicked.connect(on_click)
 
-    def show_help(self):
-        dlg = QDialog(self)
-        dlg.setWindowTitle(self.labels["help_text"])
-        dlg.resize(900, 650)
-        layout = QVBoxLayout(dlg)
-        browser = QTextBrowser()
-        layout.addWidget(browser)
-        path = get_path("ui/html files/user_guide.html")
-        browser.setSource(QUrl.fromLocalFile(path))
-        dlg.exec()
-
     def _show_html_dialog(self, title_key, file_name):
         dlg = QDialog(self)
-        dlg.setWindowTitle(self.labels[title_key])
+        dlg.setWindowTitle(self.labels.get(title_key, "Info"))
         dlg.resize(1000, 800)
         layout = QVBoxLayout(dlg)
         browser = QTextBrowser()
-        browser.document().setMaximumBlockCount(0)
-        browser.setOpenExternalLinks(True)
         layout.addWidget(browser)
         path = get_path(f"ui/html files/{file_name}")
         file = QFile(path)
@@ -230,73 +176,35 @@ class MainWindow(QMainWindow):
             stream.setEncoding(QStringConverter.Encoding.Utf8)
             content = stream.readAll()
             file.close()
-            browser.setPlainText(content)
+            browser.setHtml(content)
         dlg.exec()
 
-    def show_grammar(self):
-        self._show_html_dialog("grammar", "Grammar.html")
-
-    def show_grammar_class(self):
-        self._show_html_dialog("grammar_class", "ClassificationOfGrammar.html")
-
-    def show_method(self):
-        self._show_html_dialog("method", "MethodOfAnalysis.html")
-
-    def show_diagnostics(self):
-        self._show_html_dialog("errors", "DiagnosticsAndTroubleshooting.html")
-
-    def show_test_example(self):
-        self._show_html_dialog("example", "Test.html")
-
-    def show_references(self):
-        self._show_html_dialog("literature", "References.html")
-
-    def show_source_code(self):
-        self._show_html_dialog("source", "Program.html")
-
-    def show_problem_statement(self):
-        dlg = QDialog(self)
-        dlg.setWindowTitle(self.labels["task"])
-        dlg.resize(900, 650)
-        layout = QVBoxLayout(dlg)
-        browser = QTextBrowser()
-        layout.addWidget(browser)
-        path = get_path("ui/html files/problemStatement.html")
-        browser.setSource(QUrl.fromLocalFile(path))
-        dlg.exec()
+    def show_help(self): self._show_html_dialog("help_text", "user_guide.html")
+    def show_grammar(self): self._show_html_dialog("grammar", "Grammar.html")
+    def show_grammar_class(self): self._show_html_dialog("grammar_class", "ClassificationOfGrammar.html")
+    def show_method(self): self._show_html_dialog("method", "MethodOfAnalysis.html")
+    def show_test_example(self): self._show_html_dialog("example", "Test.html")
+    def show_references(self): self._show_html_dialog("literature", "References.html")
+    def show_source_code(self): self._show_html_dialog("source", "Program.html")
+    def show_problem_statement(self): self._show_html_dialog("task", "problemStatement.html")
 
     def _build_font_menu(self):
         view_menu = None
         for act in self.menuBar().actions():
-            menu = act.menu()
-            if menu and menu.title() == self.labels["view"]:
-                view_menu = menu
+            if act.text() == self.labels["view"] or (act.menu() and act.menu().title() == self.labels["view"]):
+                view_menu = act.menu()
                 break
-        if view_menu is None: return
+        if not view_menu: return
         self.font_menu = view_menu.addMenu(self.labels["font_size"])
-        sizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32]
-        for size in sizes:
+        for size in [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 48, 72]:
             action = self.font_menu.addAction(str(size))
-            action.triggered.connect(lambda _, s=size: self.central.set_font_size(s))
+            action.triggered.connect(lambda _, s=size: self.set_font_size(s))
 
     def update_status_bar(self):
         text = self.central.editor.toPlainText()
         size = len(text.encode("utf-8"))
         lines = text.count("\n") + 1
-        self.status.showMessage(
-            f"{self.labels['status_lang']}: {self.language.upper()}    "
-            f"{self.labels['status_size']}: {size} B    "
-            f"{self.labels['status_lines']}: {lines}"
-        )
+        self.status.showMessage(f"{self.labels['status_lang']}: {self.language.upper()} | {self.labels['status_size']}: {size} B | {self.labels['status_lines']}: {lines}")
 
-    def get_editor(self):
-        return self.central.editor
-
-    def get_output(self):
-        return self.central.table
-
-    def dragEnterEvent(self, event):
-        event.acceptProposedAction()
-
-    def dropEvent(self, event):
-        self.central.dropEvent(event)
+    def get_editor(self): return self.central.editor
+    def get_output(self): return self.central.table
