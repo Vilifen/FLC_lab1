@@ -7,7 +7,6 @@ class Controller:
     def file_new(self, window):
         window.central.add_tab("Без имени")
         window.central.tabs[window.central.current_index]["path"] = None
-        window.central.show_results_table([])
 
     def file_open(self, window):
         path, _ = QFileDialog.getOpenFileName(
@@ -29,7 +28,6 @@ class Controller:
             editor.setPlainText(f.read())
 
         window.central.tabs[idx]["modified"] = False
-        window.central.show_results_table([])
 
     def file_save(self, window):
         editor = window.get_editor()

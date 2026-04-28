@@ -148,30 +148,24 @@ class CentralWidget(QWidget):
     def add_tab(self, title=None):
         if 0 <= self.current_index < len(self.tabs):
             self.tabs[self.current_index]["text"] = self.editor.toPlainText()
-
         if not title:
             base = "Без имени"
             title = f"{base} {self.untitled_counter}"
             self.untitled_counter += 1
-
         btn = QPushButton(f"{title}   ✕")
         btn.setCheckable(True)
         btn.setFlat(True)
         btn.setFixedHeight(32)
-
         index = len(self.tabs)
         btn.clicked.connect(partial(self.switch_tab, index))
         btn.mousePressEvent = partial(self._tab_mouse_press, index=index, button=btn)
-
         self.tab_layout.insertWidget(self.tab_layout.count() - 1, btn)
-
         self.tabs.append({
             "title": title,
             "text": "",
             "button": btn,
             "modified": False,
         })
-
         self.switch_tab(index)
 
     def _tab_mouse_press(self, event, index, button):
@@ -185,7 +179,6 @@ class CentralWidget(QWidget):
         if not data.get("modified"):
             self.close_tab(index)
             return
-
         from PyQt6.QtWidgets import QMessageBox
         msg = QMessageBox(self)
         msg.setWindowTitle("Сохранить файл?")
@@ -196,12 +189,10 @@ class CentralWidget(QWidget):
         msg.setDefaultButton(yes_btn)
         msg.exec()
         clicked = msg.clickedButton()
-
         if clicked is cancel_btn:
             return
         if clicked is yes_btn:
             self.window().actions.save.trigger()
-
         self.close_tab(index)
 
     def close_tab(self, index):
@@ -210,26 +201,21 @@ class CentralWidget(QWidget):
             self.tabs[0]["modified"] = False
             self.editor.clear()
             return
-
         tab = self.tabs.pop(index)
         btn = tab["button"]
         btn.deleteLater()
-
         for i, t in enumerate(self.tabs):
             t["button"].clicked.disconnect()
             t["button"].clicked.connect(partial(self.switch_tab, i))
             t["button"].mousePressEvent = partial(self._tab_mouse_press, index=i, button=t["button"])
-
         self.current_index = -1
         self.switch_tab(max(0, index - 1))
 
     def switch_tab(self, index):
         if not (0 <= index < len(self.tabs)):
             return
-
         if 0 <= self.current_index < len(self.tabs):
             self.tabs[self.current_index]["button"].setChecked(False)
-
         self.current_index = index
         self.tabs[index]["button"].setChecked(True)
         self._load_tab()
@@ -242,28 +228,23 @@ class CentralWidget(QWidget):
         self.editor.blockSignals(False)
 
     def set_results(self, token_rows, error_rows):
-        self.token_rows = token_rows
         self.error_rows = error_rows
         self.show_errors()
 
     def show_errors(self):
-        rows = self.error_rows
         self.table.setRowCount(0)
-
-        if not rows:
+        if not self.error_rows:
             self.table.setRowCount(1)
             for j in range(3):
                 item = QTableWidgetItem("" if j < 2 else "Ошибок нет")
                 item.setFlags(Qt.ItemFlag.ItemIsEnabled)
                 self.table.setItem(0, j, item)
             return
-
-        self.table.setRowCount(len(rows))
-        for i, r in enumerate(rows):
+        self.table.setRowCount(len(self.error_rows))
+        for i, r in enumerate(self.error_rows):
             fragment = r.get("fragment", r.get("lexeme", ""))
             location = r.get("location", "")
             description = r.get("description", r.get("type", ""))
-
             self.table.setItem(i, 0, QTableWidgetItem(fragment))
             self.table.setItem(i, 1, QTableWidgetItem(location))
             self.table.setItem(i, 2, QTableWidgetItem(description))
@@ -278,11 +259,9 @@ class CentralWidget(QWidget):
         urls = event.mimeData().urls()
         if not urls:
             return
-
         path = urls[0].toLocalFile()
         if not path:
             return
-
         try:
             with open(path, "r", encoding="utf-8") as f:
                 text = f.read()
@@ -292,7 +271,6 @@ class CentralWidget(QWidget):
                     text = f.read()
             except:
                 return
-
         self.add_tab(title=path.split("/")[-1])
         self.editor.setPlainText(text)
         self.tabs[self.current_index]["text"] = text
