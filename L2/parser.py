@@ -315,7 +315,7 @@ class Parser:
                 flag = False
             self.pos = tmp_pos
 
-            if flag and  self._sync_expect(";", "Ожидалась ';'", ";"):
+            if flag and  self._sync_expect(";", "Ожидалась ';'", TokenType.EOF):
                 if not self._eof():
                     self.parse_start()
                 flag = False
@@ -323,7 +323,7 @@ class Parser:
 
 
     def parse_right_curly_brace(self):
-        if self._sync_expect(";", "Ожидалась ';'", ";"):
+        if self._sync_expect(";", "Ожидалась ';'", TokenType.EOF):
             if not self._eof():
                 self.parse_start()
 
