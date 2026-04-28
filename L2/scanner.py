@@ -71,10 +71,17 @@ class Scanner:
         start_line, start_col = self.line, self.col
         val = self.text[self.pos]
         self._advance()
+        id_length = 0
         while self.pos < len(self.text) and (self.text[self.pos].isalnum() or self.text[self.pos] == '_'):
             val += self.text[self.pos]
             self._advance()
-        self.tokens.append(Token(TokenType.IDENTIFIER, val, start_line, start_col))
+            id_length += 1
+
+        if id_length != 0:
+            self.tokens.append(Token(TokenType.IDENTIFIER, val, start_line, start_col))
+
+        else:
+            self.tokens.append(Token(TokenType.UNKNOWN, val, self.line, self.col))
 
     def _consume_word(self):
         start_line, start_col = self.line, self.col
