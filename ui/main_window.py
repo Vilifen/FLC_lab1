@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import QUrl, Qt
 import os
+from PyQt6.QtCore import QFile, QTextStream, QIODevice, QStringConverter
 
 from ui.central.central_widget import CentralWidget
 from ui.actions import ActionManager
@@ -172,6 +173,71 @@ class MainWindow(QMainWindow):
         browser = QTextBrowser()
         layout.addWidget(browser)
         path = os.path.abspath("ui/html files/user_guide.html")
+        browser.setSource(QUrl.fromLocalFile(path))
+        dlg.exec()
+
+    def _show_html_dialog(self, title_key, file_name):
+        dlg = QDialog(self)
+        dlg.setWindowTitle(self.labels[title_key])
+        dlg.resize(1000, 800)
+
+        layout = QVBoxLayout(dlg)
+        browser = QTextBrowser()
+
+        browser.document().setMaximumBlockCount(0)
+        browser.setOpenExternalLinks(True)
+
+        layout.addWidget(browser)
+
+        path = os.path.abspath(f"ui/html files/{file_name}")
+        file = QFile(path)
+
+        if file.open(QIODevice.OpenModeFlag.ReadOnly | QIODevice.OpenModeFlag.Text):
+            stream = QTextStream(file)
+            stream.setEncoding(QStringConverter.Encoding.Utf8)
+            content = stream.readAll()
+            file.close()
+
+
+            browser.setPlainText(content)
+            if len(browser.toPlainText()) < 10:
+                browser.setPlainText(content)
+
+        dlg.exec()
+
+    def show_problem_statement(self):
+        self._show_html_dialog("task", "problemStatement.html")
+
+    def show_grammar(self):
+        self._show_html_dialog("grammar", "Grammar.html")
+
+    def show_grammar_class(self):
+        self._show_html_dialog("grammar_class", "ClassificationOfGrammar.html")
+
+    def show_method(self):
+        self._show_html_dialog("method", "MethodOfAnalysis.html")
+
+    def show_diagnostics(self):
+        self._show_html_dialog("errors", "DiagnosticsAndTroubleshooting.html")
+
+    def show_test_example(self):
+        self._show_html_dialog("example", "Test.html")
+
+    def show_references(self):
+        self._show_html_dialog("literature", "References.html")
+
+    def show_source_code(self):
+        self._show_html_dialog("source", "Program.html")
+
+
+    def show_problem_statement(self):
+        dlg = QDialog(self)
+        dlg.setWindowTitle(self.labels["task"])
+        dlg.resize(900, 650)
+        layout = QVBoxLayout(dlg)
+        browser = QTextBrowser()
+        layout.addWidget(browser)
+        path = os.path.abspath("ui/html files/problemStatement.html")
         browser.setSource(QUrl.fromLocalFile(path))
         dlg.exec()
 

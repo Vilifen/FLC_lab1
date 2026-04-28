@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: sans-serif; line-height: 1.5; }
+        .code-block {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .grammar-list { list-style-type: none; padding-left: 0; }
+        b { color: #2c3e50; }
+    </style>
+</head>
+<body>
+    <h2>Разработанная грамматика</h2>
+
+    <p>Определим грамматику создания цикла <b>while</b> языка PHP <b>G[Z]</b> в нотации Хомского с продукциями <b>P</b>:</p>
+
+    <p><b>G[Z] = {VT, VN, P, Z}</b></p>
+
+    <p><b>VT</b> = {'0'...'9', 'a'...'z', 'A'...'Z', '++', '--', '&lt;=', ' &gt;=', '==', '!=', '&&', '||', '&lt;', '&gt;', '{', '}', ';', '(', ')', '_'}</p>
+
+    <p><b>VN</b> = {
+        &lt;START&gt;, &lt;KEYWORD_WHILE&gt;, &lt;LEFT_BRACE&gt;, &lt;ID_START&gt;, &lt;ID&gt;,
+        &lt;NEW_ID_START&gt;, &lt;EXPRESSION&gt;, &lt;NUMBER&gt;, &lt;RIGHT_BRACE&gt;,
+        &lt;LEFT_CURLY_BRACE&gt;, &lt;SYMBOL_ID_START&gt;, &lt;ID_IN&gt;, &lt;OPERATOR_CHANGE&gt;,
+        &lt;SEMICOLON_IN&gt;, &lt;RIGHT_CURLY_BRACE&gt;
+    }</p>
+
+    <h3>Продукции P:</h3>
+    <div class="code-block">
+1) &lt;START&gt; -&gt; 'while' &lt;KEYWORD_WHILE&gt;
+2) &lt;KEYWORD_WHILE&gt; -&gt; '(' &lt;LEFT_BRACE&gt;
+3) &lt;LEFT_BRACE&gt; -&gt; '$' &lt;ID_START&gt;
+4) &lt;ID_START&gt; -&gt; letter &lt;ID&gt;
+5) &lt;ID&gt; -&gt; letter &lt;ID&gt; | digit &lt;ID&gt; | '_' &lt;ID&gt; | '&lt;' &lt;EXPRESSION&gt; | '&gt;' &lt;EXPRESSION&gt; | '==' &lt;EXPRESSION&gt; | '&gt;=' &lt;EXPRESSION&gt; | '&lt;=' &lt;EXPRESSION&gt; | '!=' &lt;EXPRESSION&gt;
+6) &lt;EXPRESSION&gt; -&gt; digit &lt;NUMBER&gt; | ‘$’ &lt;NEW_ID_START&gt;
+7) &lt;NUMBER&gt; -&gt; digit &lt;NUMBER&gt; | '||' &lt;LEFT_BRACE&gt; | '&&' &lt;LEFT_BRACE&gt; | ')' &lt;RIGHT_BRACE&gt;
+8) &lt;NEW_ID_START&gt; -&gt; letter &lt;NEW_ID&gt; | ‘_’ &lt;NEW_ID&gt; | '||' &lt;LEFT_BRACE&gt; | '&&' &lt;LEFT_BRACE&gt; | ')' &lt;RIGHT_BRACE&gt;
+9) &lt;NEW_ID&gt; -&gt; '||' &lt;LEFT_BRACE&gt; | '&&' &lt;LEFT_BRACE&gt; | ')' &lt;RIGHT_BRACE&gt;
+10) &lt;RIGHT_BRACE&gt; -&gt; '{' &lt;LEFT_CURLY_BRACE&gt;
+11) &lt;LEFT_CURLY_BRACE&gt; -&gt; ' ' '$' &lt;SYMBOL_ID_START&gt;
+12) &lt;SYMBOL_ID_START&gt; -&gt; letter &lt;ID_IN&gt;
+13) &lt;ID_IN&gt; -&gt; letter &lt;ID_IN&gt; | digit &lt;ID_IN&gt; | '_' &lt;ID_IN&gt; | '++' &lt;OPERATOR_CHANGE&gt; | '--' &lt;OPERATOR_CHANGE&gt;
+14) &lt;OPERATOR_CHANGE&gt; -&gt; ';' &lt;SEMICOLON_IN&gt;
+15) &lt;SEMICOLON_IN&gt; -&gt; '}' &lt;RIGHT_CURLY_BRACE&gt; | '$' &lt;SYMBOL_ID_START&gt;
+16) &lt;RIGHT_CURLY_BRACE&gt; -&gt; ';'
+    </div>
+
+    <p><b>Z</b> = &lt;START&gt;</p>
+</body>
+</html>
