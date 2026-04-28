@@ -79,8 +79,10 @@ class MainWindow(QMainWindow):
         splitter.setHandleWidth(6)
 
         container = QWidget()
+        container.setObjectName("main_container")
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
         layout.addWidget(splitter)
 
         self.error_status = QStatusBar()
@@ -94,6 +96,43 @@ class MainWindow(QMainWindow):
 
         self._build_font_menu()
         self.central.editor.textChanged.connect(self.update_status_bar)
+
+        self.setStyleSheet("""
+            QMainWindow, QWidget#main_container {
+                background-color: white;
+            }
+            QMenuBar {
+                background-color: white;
+                color: black;
+                border-bottom: 1px solid #dcdcdc;
+            }
+            QMenuBar::item:selected {
+                background-color: #e0e0e0;
+            }
+            QMenu {
+                background-color: white;
+                color: black;
+                border: 1px solid #dcdcdc;
+            }
+            QMenu::item:selected {
+                background-color: #0078d7;
+                color: white;
+            }
+            QStatusBar {
+                background-color: white;
+                color: black;
+                border-top: 1px solid #dcdcdc;
+            }
+            QStatusBar::item {
+                border: none;
+            }
+            QSplitter::handle {
+                background-color: #f0f0f0;
+            }
+        """)
+
+        self.status.setStyleSheet("background-color: white; color: black; border-top: 1px solid #dcdcdc;")
+        self.error_status.setStyleSheet("background-color: white; color: black; border-top: 1px solid #dcdcdc;")
 
     def set_language(self, lang):
         if lang == "en":
@@ -145,9 +184,7 @@ class MainWindow(QMainWindow):
     def run_antlr_action(self):
         editor = self.central.editor
         text = editor.toPlainText()
-
         token_rows, all_errors = execute_antlr_analysis(text)
-
         self.central.set_results(token_rows, all_errors)
         self.error_status.showMessage(f"Всего ошибок ANTLR: {len(all_errors)}")
         self._connect_table_navigation(editor)
@@ -180,33 +217,22 @@ class MainWindow(QMainWindow):
         dlg = QDialog(self)
         dlg.setWindowTitle(self.labels[title_key])
         dlg.resize(1000, 800)
-
         layout = QVBoxLayout(dlg)
         browser = QTextBrowser()
-
         browser.document().setMaximumBlockCount(0)
         browser.setOpenExternalLinks(True)
-
         layout.addWidget(browser)
-
         path = os.path.abspath(f"ui/html files/{file_name}")
         file = QFile(path)
-
         if file.open(QIODevice.OpenModeFlag.ReadOnly | QIODevice.OpenModeFlag.Text):
             stream = QTextStream(file)
             stream.setEncoding(QStringConverter.Encoding.Utf8)
             content = stream.readAll()
             file.close()
-
-
             browser.setPlainText(content)
             if len(browser.toPlainText()) < 10:
                 browser.setPlainText(content)
-
         dlg.exec()
-
-    def show_problem_statement(self):
-        self._show_html_dialog("task", "problemStatement.html")
 
     def show_grammar(self):
         self._show_html_dialog("grammar", "Grammar.html")
@@ -228,7 +254,6 @@ class MainWindow(QMainWindow):
 
     def show_source_code(self):
         self._show_html_dialog("source", "Program.html")
-
 
     def show_problem_statement(self):
         dlg = QDialog(self)

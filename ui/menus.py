@@ -5,6 +5,25 @@ class MenuBuilder:
 
         menubar = window.menuBar()
 
+        menubar.setStyleSheet("""
+                    QMenuBar {
+                        background-color: white;
+                        color: black; /* Цвет текста для пунктов меню */
+                    }
+                    QMenuBar::item:selected { 
+                        background-color: #e0e0e0; /* Цвет при наведении на пункт в полосе */
+                    }
+                    QMenu {
+                        background-color: white;
+                        color: black;
+                        border: 1px solid #dcdcdc;
+                    }
+                    QMenu::item:selected {
+                        background-color: #0078d7; /* Цвет выделения пункта в списке */
+                        color: white;
+                    }
+                """)
+
         self.file_menu = menubar.addMenu(window.labels["file"])
         self.file_menu.addAction(actions.menu_new)
         self.file_menu.addAction(actions.menu_open)

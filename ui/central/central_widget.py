@@ -17,7 +17,6 @@ class CentralWidget(QWidget):
         self.untitled_counter = 1
         self.font_size = 14
 
-        # Атрибуты сохранены для совместимости с MainWindow
         self.output_mode = "errors"
         self.token_rows = []
         self.error_rows = []
@@ -34,23 +33,42 @@ class CentralWidget(QWidget):
         self.tab_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.tab_scroll.setWidgetResizable(True)
         self.tab_scroll.setFixedHeight(48)
+        self.tab_scroll.setStyleSheet("QScrollArea { border: none; background: white; }")
 
         self.tab_bar = QWidget()
         self.tab_bar.setObjectName("tab-bar")
         self.tab_bar.setStyleSheet("""
             #tab-bar {
-                background: #f0f0f0;
-                border-bottom: 1px solid #c0c0c0;
+                background: white;
+                border-bottom: 1px solid #dcdcdc;
+            }
+            QPushButton {
+                background: #f8f8f8;
+                border: 1px solid #dcdcdc;
+                border-radius: 4px;
+                padding: 4px 8px;
+                color: black;
+            }
+            QPushButton:checked {
+                background: white;
+                border-bottom: 1px solid white;
+                font-weight: bold;
+            }
+            QPushButton#plus_btn {
+                background: transparent;
+                border: none;
+                font-size: 18px;
             }
         """)
 
         self.tab_layout = QHBoxLayout(self.tab_bar)
-        self.tab_layout.setContentsMargins(4, 2, 4, 0)
-        self.tab_layout.setSpacing(2)
+        self.tab_layout.setContentsMargins(4, 4, 4, 0)
+        self.tab_layout.setSpacing(4)
 
         self.tab_scroll.setWidget(self.tab_bar)
 
         self.plus_button = QPushButton("+")
+        self.plus_button.setObjectName("plus_btn")
         self.plus_button.setFixedWidth(28)
         self.plus_button.setFlat(True)
         self.plus_button.clicked.connect(self.add_tab)
@@ -62,6 +80,7 @@ class CentralWidget(QWidget):
         self.tab_layout.addWidget(self.spacer)
 
         self.editor = CodeEditor()
+        self.editor.setStyleSheet("background-color: white; color: black; border: none;")
 
         editor_layout.addWidget(self.tab_scroll)
         editor_layout.addWidget(self.editor)
@@ -76,6 +95,24 @@ class CentralWidget(QWidget):
         self.table.setColumnCount(3)
         self.table.setHorizontalHeaderLabels(["Неверный фрагмент", "Местоположение", "Описание"])
         self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.table.setStyleSheet("""
+            QTableWidget {
+                background-color: white;
+                color: black;
+                gridline-color: #dcdcdc;
+                border: none;
+            }
+            QHeaderView::section {
+                background-color: #f0f0f0;
+                color: black;
+                padding: 4px;
+                border: 1px solid #dcdcdc;
+            }
+            QTableWidget::item {
+                background-color: white;
+            }
+        """)
+
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
@@ -135,13 +172,10 @@ class CentralWidget(QWidget):
             "modified": False,
         })
 
-        self.current_index = index
-        self._load_tab()
-        self._update_status()
-        self.show_errors()
+        self.switch_tab(index)
 
     def _tab_mouse_press(self, event, index, button):
-        if event.pos().x() > button.width() - 18:
+        if event.pos().x() > button.width() - 24:
             self._request_close_tab(index)
             return
         self.switch_tab(index)
@@ -169,47 +203,37 @@ class CentralWidget(QWidget):
             self.window().actions.save.trigger()
 
         self.close_tab(index)
-        self._update_status()
-        self.show_errors()
 
     def close_tab(self, index):
-        if len(self.tabs) == 1:
+        if len(self.tabs) <= 1:
+            self.tabs[0]["text"] = ""
+            self.tabs[0]["modified"] = False
+            self.editor.clear()
             return
 
         tab = self.tabs.pop(index)
         btn = tab["button"]
-
-        layout_index = self.tab_layout.indexOf(btn)
-        if layout_index != -1:
-            item = self.tab_layout.takeAt(layout_index)
-            if item is not None:
-                w = item.widget()
-                if w is not None:
-                    w.deleteLater()
+        btn.deleteLater()
 
         for i, t in enumerate(self.tabs):
             t["button"].clicked.disconnect()
             t["button"].clicked.connect(partial(self.switch_tab, i))
             t["button"].mousePressEvent = partial(self._tab_mouse_press, index=i, button=t["button"])
 
-        self.current_index = max(0, index - 1)
-        self._load_tab()
-        self._update_status()
-        self.show_errors()
+        self.current_index = -1
+        self.switch_tab(max(0, index - 1))
 
     def switch_tab(self, index):
-        if index == self.current_index:
-            return
         if not (0 <= index < len(self.tabs)):
             return
 
         if 0 <= self.current_index < len(self.tabs):
-            self.tabs[self.current_index]["text"] = self.editor.toPlainText()
+            self.tabs[self.current_index]["button"].setChecked(False)
 
         self.current_index = index
+        self.tabs[index]["button"].setChecked(True)
         self._load_tab()
         self._update_status()
-        self.show_errors()
 
     def _load_tab(self):
         data = self.tabs[self.current_index]
@@ -228,9 +252,10 @@ class CentralWidget(QWidget):
 
         if not rows:
             self.table.setRowCount(1)
-            self.table.setItem(0, 0, QTableWidgetItem(""))
-            self.table.setItem(0, 1, QTableWidgetItem(""))
-            self.table.setItem(0, 2, QTableWidgetItem("Ошибок нет"))
+            for j in range(3):
+                item = QTableWidgetItem("" if j < 2 else "Ошибок нет")
+                item.setFlags(Qt.ItemFlag.ItemIsEnabled)
+                self.table.setItem(0, j, item)
             return
 
         self.table.setRowCount(len(rows))
