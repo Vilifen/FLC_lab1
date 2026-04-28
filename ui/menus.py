@@ -8,10 +8,10 @@ class MenuBuilder:
         menubar.setStyleSheet("""
                     QMenuBar {
                         background-color: white;
-                        color: black; /* Цвет текста для пунктов меню */
+                        color: black; 
                     }
                     QMenuBar::item:selected { 
-                        background-color: #e0e0e0; /* Цвет при наведении на пункт в полосе */
+                        background-color: #e0e0e0; 
                     }
                     QMenu {
                         background-color: white;
@@ -19,7 +19,7 @@ class MenuBuilder:
                         border: 1px solid #dcdcdc;
                     }
                     QMenu::item:selected {
-                        background-color: #0078d7; /* Цвет выделения пункта в списке */
+                        background-color: #0078d7; 
                         color: white;
                     }
                 """)

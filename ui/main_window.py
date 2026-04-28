@@ -1,10 +1,10 @@
+import os
+import sys
 from PyQt6.QtWidgets import (
     QMainWindow, QMessageBox, QStatusBar, QDialog,
     QVBoxLayout, QTextBrowser, QWidget, QSplitter
 )
-from PyQt6.QtCore import QUrl, Qt
-import os
-from PyQt6.QtCore import QFile, QTextStream, QIODevice, QStringConverter
+from PyQt6.QtCore import QUrl, Qt, QFile, QTextStream, QIODevice, QStringConverter
 
 from ui.central.central_widget import CentralWidget
 from ui.actions import ActionManager
@@ -15,6 +15,10 @@ from L2.integration import run_scanner
 from L2.navigation import navigate_to_error
 from ANTLR.antlr_handler import execute_antlr_analysis
 
+def get_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 class MainWindow(QMainWindow):
     def __init__(self, controller):
@@ -131,9 +135,6 @@ class MainWindow(QMainWindow):
             }
         """)
 
-        self.status.setStyleSheet("background-color: white; color: black; border-top: 1px solid #dcdcdc;")
-        self.error_status.setStyleSheet("background-color: white; color: black; border-top: 1px solid #dcdcdc;")
-
     def set_language(self, lang):
         if lang == "en":
             self.labels = self.labels_en
@@ -209,7 +210,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(dlg)
         browser = QTextBrowser()
         layout.addWidget(browser)
-        path = os.path.abspath("ui/html files/user_guide.html")
+        path = get_path("ui/html files/user_guide.html")
         browser.setSource(QUrl.fromLocalFile(path))
         dlg.exec()
 
@@ -222,7 +223,7 @@ class MainWindow(QMainWindow):
         browser.document().setMaximumBlockCount(0)
         browser.setOpenExternalLinks(True)
         layout.addWidget(browser)
-        path = os.path.abspath(f"ui/html files/{file_name}")
+        path = get_path(f"ui/html files/{file_name}")
         file = QFile(path)
         if file.open(QIODevice.OpenModeFlag.ReadOnly | QIODevice.OpenModeFlag.Text):
             stream = QTextStream(file)
@@ -230,8 +231,6 @@ class MainWindow(QMainWindow):
             content = stream.readAll()
             file.close()
             browser.setPlainText(content)
-            if len(browser.toPlainText()) < 10:
-                browser.setPlainText(content)
         dlg.exec()
 
     def show_grammar(self):
@@ -262,7 +261,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(dlg)
         browser = QTextBrowser()
         layout.addWidget(browser)
-        path = os.path.abspath("ui/html files/problemStatement.html")
+        path = get_path("ui/html files/problemStatement.html")
         browser.setSource(QUrl.fromLocalFile(path))
         dlg.exec()
 

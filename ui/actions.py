@@ -1,31 +1,38 @@
+import os
+import sys
 from PyQt6.QtGui import QAction, QIcon, QKeySequence
 from PyQt6.QtWidgets import QMessageBox
+
+def get_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 class ActionManager:
     def __init__(self, window, controller):
         self.win = window
         self.ctrl = controller
 
-        self.new = QAction(QIcon("ui/icons/create.png"), "", window)
-        self.open = QAction(QIcon("ui/icons/open.png"), "", window)
-        self.save = QAction(QIcon("ui/icons/save.png"), "", window)
-        self.save_as = QAction(QIcon("ui/icons/save.png"), "", window)
-        self.exit = QAction(QIcon("ui/icons/exit.png"), "", window)
+        self.new = QAction(QIcon(get_path("ui/icons/create.png")), "", window)
+        self.open = QAction(QIcon(get_path("ui/icons/open.png")), "", window)
+        self.save = QAction(QIcon(get_path("ui/icons/save.png")), "", window)
+        self.save_as = QAction(QIcon(get_path("ui/icons/save.png")), "", window)
+        self.exit = QAction(QIcon(get_path("ui/icons/exit.png")), "", window)
 
-        self.undo = QAction(QIcon("ui/icons/cancel.png"), "", window)
-        self.redo = QAction(QIcon("ui/icons/repeat.png"), "", window)
+        self.undo = QAction(QIcon(get_path("ui/icons/cancel.png")), "", window)
+        self.redo = QAction(QIcon(get_path("ui/icons/repeat.png")), "", window)
 
-        self.copy = QAction(QIcon("ui/icons/copy.png"), "", window)
-        self.cut = QAction(QIcon("ui/icons/cut.png"), "", window)
-        self.paste = QAction(QIcon("ui/icons/insert.png"), "", window)
+        self.copy = QAction(QIcon(get_path("ui/icons/copy.png")), "", window)
+        self.cut = QAction(QIcon(get_path("ui/icons/cut.png")), "", window)
+        self.paste = QAction(QIcon(get_path("ui/icons/insert.png")), "", window)
         self.delete = QAction("", window)
         self.select_all = QAction("", window)
 
-        self.run = QAction(QIcon("ui/icons/launch.png"), "", window)
-        self.antlr = QAction(QIcon("photo/antlr.png"), "", window)
+        self.run = QAction(QIcon(get_path("ui/icons/launch.png")), "", window)
+        self.antlr = QAction(QIcon(get_path("photo/antlr.png")), "", window)
 
-        self.help = QAction(QIcon("ui/icons/reference.png"), "", window)
-        self.about = QAction(QIcon("ui/icons/information.png"), "", window)
+        self.help = QAction(QIcon(get_path("ui/icons/reference.png")), "", window)
+        self.about = QAction(QIcon(get_path("ui/icons/information.png")), "", window)
 
         self.menu_new = QAction("", window)
         self.menu_open = QAction("", window)
@@ -50,7 +57,7 @@ class ActionManager:
         self.menu_text_source = QAction("", window)
 
         self.menu_run = QAction("", window)
-        self.menu_antlr = QAction(QIcon("photo/antlr.png"), "", window)
+        self.menu_antlr = QAction(QIcon(get_path("photo/antlr.png")), "", window)
 
         self.menu_help = QAction("", window)
         self.menu_about = QAction("", window)
@@ -150,7 +157,6 @@ class ActionManager:
         self.menu_paste.triggered.connect(lambda: self.win.get_editor().paste())
         self.menu_delete.triggered.connect(lambda: self.win.get_editor().textCursor().removeSelectedText())
         self.menu_select_all.triggered.connect(lambda: self.win.get_editor().selectAll())
-
         self.menu_text_task.triggered.connect(self.win.show_problem_statement)
         self.menu_text_grammar.triggered.connect(self.win.show_grammar)
         self.menu_text_class.triggered.connect(self.win.show_grammar_class)
@@ -158,7 +164,6 @@ class ActionManager:
         self.menu_text_example.triggered.connect(self.win.show_test_example)
         self.menu_text_literature.triggered.connect(self.win.show_references)
         self.menu_text_source.triggered.connect(self.win.show_source_code)
-
         self.menu_run.triggered.connect(self.win.run_scanner_action)
         self.run.triggered.connect(self.win.run_scanner_action)
         self.menu_antlr.triggered.connect(self.win.run_antlr_action)

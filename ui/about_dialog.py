@@ -1,6 +1,11 @@
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTextBrowser
 import os
+import sys
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTextBrowser
 
+def get_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 class AboutDialog(QDialog):
     def __init__(self, parent=None):
@@ -14,8 +19,7 @@ class AboutDialog(QDialog):
         self.viewer = QTextBrowser()
         layout.addWidget(self.viewer)
 
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        html_path = os.path.join(base_dir, "html files", "about.html")
+        html_path = get_path("ui/html files/about.html")
 
         try:
             with open(html_path, "r", encoding="utf-8") as f:
