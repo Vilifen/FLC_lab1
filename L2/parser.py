@@ -78,6 +78,50 @@ class Parser:
             flag = False
         self.pos = tmp_pos
 
+        # if flag and self._sync_expect(["<", ">", "==", "!=", "<=", ">="], "Ожидался оператор сравнения", [TokenType.NUMBER, TokenType.IDENTIFIER]):
+        #     self.parse_expression()
+        #     flag = False
+        # self.pos = tmp_pos
+        #
+        # if flag and self._sync_expect([TokenType.NUMBER, TokenType.IDENTIFIER], "Ожидалось число или идентификатор", ["&&", "||", ')']):
+        #     self.parse_right_operand()
+        #     flag = False
+        # self.pos = tmp_pos
+
+
+
+
+
+
+    def parse_keyword_while(self):
+        tmp_pos = self.pos
+        flag = True
+        if self._sync_expect("(", "Ожидалась '('", TokenType.IDENTIFIER):
+            self.parse_left_brace()
+            flag = False
+        self.pos = tmp_pos
+
+        if flag and self._sync_expect(TokenType.IDENTIFIER, "Ожидался идентификатор", ["<", ">", "==", "!=", "<=", ">="]):
+            self.parse_identifier()
+            flag = False
+        self.pos = tmp_pos
+
+        if flag and self._sync_expect(["<", ">", "==", "!=", "<=", ">="], "Ожидался оператор сравнения", [TokenType.NUMBER, TokenType.IDENTIFIER]):
+            self.parse_expression()
+            flag = False
+        self.pos = tmp_pos
+
+
+    def parse_left_brace(self):
+        # if self._sync_expect(TokenType.IDENTIFIER, "Ожидался идентификатор", ["<", ">", "==", "!=", "<=", ">="]):
+        #     self.parse_identifier()
+        tmp_pos = self.pos
+        flag = True
+        if flag and self._sync_expect(TokenType.IDENTIFIER, "Ожидался идентификатор", ["<", ">", "==", "!=", "<=", ">="]):
+            self.parse_identifier()
+            flag = False
+        self.pos = tmp_pos
+
         if flag and self._sync_expect(["<", ">", "==", "!=", "<=", ">="], "Ожидался оператор сравнения", [TokenType.NUMBER, TokenType.IDENTIFIER]):
             self.parse_expression()
             flag = False
@@ -89,25 +133,55 @@ class Parser:
         self.pos = tmp_pos
 
 
-
-
-
-
-    def parse_keyword_while(self):
-        if self._sync_expect("(", "Ожидалась '('", TokenType.IDENTIFIER):
-            self.parse_left_brace()
-
-    def parse_left_brace(self):
-        if self._sync_expect(TokenType.IDENTIFIER, "Ожидался идентификатор", ["<", ">", "==", "!=", "<=", ">="]):
-            self.parse_identifier()
-
     def parse_identifier(self):
-        if self._sync_expect(["<", ">", "==", "!=", "<=", ">="], "Ожидался оператор сравнения", [TokenType.NUMBER, TokenType.IDENTIFIER]):
+        # if self._sync_expect(["<", ">", "==", "!=", "<=", ">="], "Ожидался оператор сравнения", [TokenType.NUMBER, TokenType.IDENTIFIER]):
+        #     self.parse_expression()
+        tmp_pos = self.pos
+        flag = True
+
+        if flag and self._sync_expect(["<", ">", "==", "!=", "<=", ">="], "Ожидался оператор сравнения",
+                                      [TokenType.NUMBER, TokenType.IDENTIFIER]):
             self.parse_expression()
+            flag = False
+        self.pos = tmp_pos
+
+        if flag and self._sync_expect([TokenType.NUMBER, TokenType.IDENTIFIER], "Ожидалось число или идентификатор",
+                                      ["&&", "||", ')']):
+            self.parse_right_operand()
+            flag = False
+        self.pos = tmp_pos
+
+        # if self._sync_expect(")", "Ожидалась ')'", "{"):
+        #     self.parse_right_brace()
+        #     flag = False
+        # self.pos = tmp_pos
+
+
 
     def parse_expression(self):
         if self._sync_expect([TokenType.NUMBER, TokenType.IDENTIFIER], "Ожидалось число или идентификатор", ["&&", "||", ')']):
             self.parse_right_operand()
+
+        # tmp_pos = self.pos
+        # flag = True
+        #
+        # if flag and self._sync_expect([TokenType.NUMBER, TokenType.IDENTIFIER], "Ожидалось число или идентификатор",
+        #                               ["&&", "||", ')']):
+        #     self.parse_right_operand()
+        #     flag = False
+        # self.pos = tmp_pos
+        #
+        # if self._sync_expect(")", "Ожидалась ')'", "{"):
+        #     self.parse_right_brace()
+        #     flag = False
+        # self.pos = tmp_pos
+        #
+        # if self._sync_expect("{", "Ожидалась '{'", TokenType.IDENTIFIER):
+        #     self.parse_left_curly_brace()
+        #     flag = False
+        # self.pos = tmp_pos
+
+
 
     def parse_right_operand(self):
         tok = self.tokens[self.pos]
@@ -119,28 +193,111 @@ class Parser:
             self.parse_right_brace()
         else:
             tmp_pos = self.pos
-            while tok.value != '{' and not self._eof():
-                tok = self.tokens[self.pos]
-                self.pos+=1;
-            if (tok.value == "{" or self._eof()):
-                self._error("Ожидалась ')'", self.tokens[tmp_pos])
-            self.parse_right_brace()
+            flag = True
+            if self._sync_expect(")", "Ожидалась ')'", "{"):
+                self.parse_right_brace()
+                flag = False
+            self.pos = tmp_pos
+
+            if self._sync_expect("{", "Ожидалась '{'", TokenType.IDENTIFIER):
+                self.parse_left_curly_brace()
+                flag = False
+            self.pos = tmp_pos
+
+            if flag and self._sync_expect(TokenType.IDENTIFIER, "Ожидался идентификатор", ["++", "--"]):
+                self.parse_id_in()
+                flag = False
+            self.pos = tmp_pos
+
 
     def parse_right_brace(self):
+        # if self._sync_expect("{", "Ожидалась '{'", TokenType.IDENTIFIER):
+        #     self.parse_left_curly_brace()
+        tmp_pos = self.pos
+        flag = True
+
         if self._sync_expect("{", "Ожидалась '{'", TokenType.IDENTIFIER):
             self.parse_left_curly_brace()
+            flag = False
+        self.pos = tmp_pos
+
+        if flag and self._sync_expect(TokenType.IDENTIFIER, "Ожидался идентификатор", ["++", "--"]):
+            self.parse_id_in()
+            flag = False
+        self.pos = tmp_pos
+
+        if flag and self._sync_expect(["++", "--"], "Ожидался оператор изменения", ";"):
+            self.parse_operator_change()
+            flag = False
+        self.pos = tmp_pos
+
 
     def parse_left_curly_brace(self):
-        if self._sync_expect(TokenType.IDENTIFIER, "Ожидался идентификатор", ["++", "--"]):
+        # if self._sync_expect(TokenType.IDENTIFIER, "Ожидался идентификатор", ["++", "--"]):
+        #     self.parse_id_in()
+        tmp_pos = self.pos
+        flag = True
+
+        if flag and self._sync_expect(TokenType.IDENTIFIER, "Ожидался идентификатор", ["++", "--"]):
             self.parse_id_in()
+            flag = False
+        self.pos = tmp_pos
+
+        if flag and self._sync_expect(["++", "--"], "Ожидался оператор изменения", ";"):
+            self.parse_operator_change()
+            flag = False
+        self.pos = tmp_pos
+
+        if flag and self._sync_expect(";", "Ожидалась ';'", [TokenType.IDENTIFIER, "}"]):
+            self.parse_semicolon_in()
+            flag = False
+        self.pos = tmp_pos
+
 
     def parse_id_in(self):
-        if self._sync_expect(["++", "--"], "Ожидался оператор изменения", ";"):
+        # if self._sync_expect(["++", "--"], "Ожидался оператор изменения", ";"):
+        #     self.parse_operator_change()
+        tmp_pos = self.pos
+        flag = True
+
+        if flag and self._sync_expect(["++", "--"], "Ожидался оператор изменения", ";"):
             self.parse_operator_change()
+            flag = False
+        self.pos = tmp_pos
+
+        if flag and self._sync_expect(";", "Ожидалась ';'", [TokenType.IDENTIFIER, "}"]):
+            self.parse_semicolon_in()
+            flag = False
+        self.pos = tmp_pos
+
+        # if self._sync_expect("}", "Ожидалась '}'", ";"):
+        #     self.parse_right_curly_brace()
+        #     flag = False
+        # self.pos = tmp_pos
+
 
     def parse_operator_change(self):
         if self._sync_expect(";", "Ожидалась ';'", [TokenType.IDENTIFIER, "}"]):
             self.parse_semicolon_in()
+
+        tmp_pos = self.pos
+        flag = True
+
+        # if self._sync_expect(";", "Ожидалась ';'", [TokenType.IDENTIFIER, "}"]):
+        #     self.parse_semicolon_in()
+        #     flag = False
+        # self.pos = tmp_pos
+        #
+        # if self._sync_expect("}", "Ожидалась '}'", ";"):
+        #     self.parse_right_curly_brace()
+        #     flag = False
+        # self.pos = tmp_pos
+        #
+        # if flag and self._sync_expect(";", "Ожидалась ';'", ";"):
+        #     if not self._eof():
+        #         self.parse_start()
+        #     flag = False
+        # self.pos = tmp_pos
 
     def parse_semicolon_in(self):
         tok = self.tokens[self.pos]
@@ -151,8 +308,19 @@ class Parser:
             self.pos+=1;
             self.parse_right_curly_brace()
         else:
+            tmp_pos = self.pos
+            flag = True
             if self._sync_expect("}", "Ожидалась '}'", ";"):
                 self.parse_right_curly_brace()
+                flag = False
+            self.pos = tmp_pos
+
+            if flag and  self._sync_expect(";", "Ожидалась ';'", ";"):
+                if not self._eof():
+                    self.parse_start()
+                flag = False
+            self.pos = tmp_pos
+
 
     def parse_right_curly_brace(self):
         if self._sync_expect(";", "Ожидалась ';'", ";"):
