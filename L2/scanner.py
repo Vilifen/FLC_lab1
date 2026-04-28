@@ -72,7 +72,7 @@ class Scanner:
         val = self.text[self.pos]
         self._advance()
         id_length = 0
-        while self.pos < len(self.text) and (self.text[self.pos].isalnum() or self.text[self.pos] == '_'):
+        while self.pos < len(self.text) and (((self.text[self.pos].isalpha() or self.text[self.pos] == '_') and id_length >= 0) or (self.text[self.pos].isalnum() and id_length > 0)):
             val += self.text[self.pos]
             self._advance()
             id_length += 1
